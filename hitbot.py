@@ -12,6 +12,8 @@ from urllib.parse import urlencode, quote_plus, urlparse
 import simplejson as json
 from bs4 import BeautifulSoup
 import numpy as np
+import gzip
+import io
 
 # Amazon APIs
 import boto3
@@ -25,10 +27,35 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import podsearch
 
 
+def _decodeGzippedContent(encoded_content):
+    response_stream = io.BytesIO(encoded_content)
+    decoded_content = ""
+    try:
+        gzipper = gzip.GzipFile(fileobj=response_stream)
+        decoded_content = gzipper.read()
+    except: # Maybe this isn't gzipped content after all....
+        decoded_content = encoded_content
+    decoded_content = decoded_content.decode('utf-8')
+    return(decoded_content)
+
+
+def makeregex(targetstr):
+    spacepattern = re.compile("\s+")
+    targetpattern = targetstr.replace("\\", "\\\\")
+    targetpattern = re.sub(spacepattern, "\s+", targetpattern)
+    targetpattern = targetpattern.replace("(", "\(").replace(")", "\)")
+    targetpattern = targetpattern.replace("-", "\-").replace(".", "\.").replace(":", "\:")
+    targetpattern = targetpattern.replace("/", "\/").replace('"', '\"')
+    targetpattern = targetpattern.replace("[", "\[").replace("]", "\]")
+    #print(targetpattern)
+    targetregex = re.compile(targetpattern, re.DOTALL|re.IGNORECASE)
+    return targetregex
+
 
 class AmazonBot(object):
     
     def __init__(self, apikey):
+        self.DEBUG = 1
         self.apikey = apikey
         self.proxies = {'http' : [], 'https' : []}
         self.response = None # This would a response object from Amazon API
@@ -38,6 +65,7 @@ class AmazonBot(object):
         # HTTP(S) request/response and parameters
         self.httprequest = None
         self.httpresponse = None
+        self.httpcontent = None
         try:
             self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][0], 'https': self.proxies['https'][0]})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
@@ -66,8 +94,25 @@ class AmazonBot(object):
         return self.httpopener
 
 
-    def makerequest(self, reqidentifier):
-        pass
+    def makehttprequest(self, requrl):
+        self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            return None
+        return self.httpresponse
+
+
+    def gethttpresponsecontent(self):
+        try:
+            encodedcontent = self.httpresponse.read()
+            self.httpcontent = _decodeGzippedContent(encodedcontent)
+        except:
+            print("Error reading content: %s"%sys.exc_info()[1].__str__())
+            self.httpcontent = None
+            return None
+        return str(self.httpcontent)
 
 
     def parsecontent(self, reqtype='search', reqformat='json'):
@@ -92,6 +137,10 @@ class AmazonBot(object):
                     except:
                         listennotes = ""
                     try:
+                        podcastid = rd['podcast']['id']
+                    except:
+                        podcastid = ""
+                    try:
                         title = rd['title_original']
                     except:
                         title = ""
@@ -99,7 +148,7 @@ class AmazonBot(object):
                         itunesid = rd['itunes_id']
                     except:
                         itunesid = ""
-                    d = {'link' : link, 'audio' : 'audio', 'listennotesurl' : listennotes, 'title' : title, 'itunesid' : itunesid}
+                    d = {'link' : link, 'audio' : 'audio', 'listennotesurl' : listennotes, 'title' : title, 'itunesid' : itunesid, 'podcastid' : podcastid}
                     self.results.append(d)
             if reqtype == 'podcast': # Response came from a request for a podcast identified by a podcast Id
                 handles = {}
@@ -226,6 +275,7 @@ class AmazonBot(object):
 class SpotifyBot(object):
     
     def __init__(self, client_id, client_secret):
+        self.DEBUG = 1
         self.clientid = client_id
         self.clientsecret = client_secret
         self.spotclient = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=client_id, client_secret=client_secret))
@@ -236,6 +286,7 @@ class SpotifyBot(object):
         # HTTP(S) request/response and parameters
         self.httprequest = None
         self.httpresponse = None
+        self.httpcontent = None
         try:
             self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][0], 'https': self.proxies['https'][0]})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
@@ -257,8 +308,65 @@ class SpotifyBot(object):
     def searchforpodcasts(self, searchkey, limit=20):
         self.response = self.spotclient.search(q=searchkey, limit=limit)
         self.content = self.response
+        #fp = open("spotifysearch.json", "w")
+        #fp.write(str(self.content))
+        #fp.close()
         url = self.response['tracks']['href']
         items = self.response['tracks']['items']
+        self.results = []
+        for item in items:
+            try:
+                albumspotifyurl = str(item['album']['external_urls']['spotify'])
+            except:
+                albumspotifyurl = ""
+            try:
+                albumid = str(item['album']['id'])
+            except:
+                albumid = ""
+            try:
+                albumuri = str(item['album']['uri'])
+            except:
+                albumuri = ""
+            try:
+                itemspotifyurl = str(item['external_urls']['spotify'])
+            except:
+                itemspotifyurl = ""
+            try:
+                spotifyhref = str(item['href'])
+            except:
+                spotifyhref = ""
+            try:
+                itemid = str(item['id'])
+            except:
+                itemid = ""
+            try:
+                itemuri = str(item['uri'])
+            except:
+                itemuri = ""
+            d = {'albumspotifyurl' : albumspotifyurl, 'albumid' : albumid, 'albumuri' : albumuri, 'itemspotifyurl' : itemspotifyurl, 'spotifyhref' : spotifyhref, 'itemid' : itemid, 'itemuri' : itemuri}
+            self.results.append(d)
+        return self.results
+
+
+    def makehttprequest(self, requrl):
+        self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            return None
+        return self.httpresponse
+
+
+    def gethttpresponsecontent(self):
+        try:
+            encodedcontent = self.httpresponse.read()
+            self.httpcontent = _decodeGzippedContent(encodedcontent)
+        except:
+            print("Error reading content: %s"%sys.exc_info()[1].__str__())
+            self.httpcontent = None
+            return None
+        return str(self.httpcontent)
 
 
 
@@ -266,6 +374,7 @@ class SpotifyBot(object):
 class AppleBot(object):
 
     def __init__(self):
+        self.DEBUG = 1
         self.proxies = {'http' : [], 'https' : []}
         self.response = None # This would a response object from Amazon API
         self.content = None # This could be a text chunk or a binary data (like a Podcast content)
@@ -273,6 +382,7 @@ class AppleBot(object):
         # HTTP(S) request/response and parameters
         self.httprequest = None
         self.httpresponse = None
+        self.httpcontent = None
         try:
             self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][0], 'https': self.proxies['https'][0]})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
@@ -295,19 +405,71 @@ class AppleBot(object):
         podcasts = podsearch.search(searchkey, country=country, limit=limit)
 
 
+    def makehttprequest(self, requrl):
+        self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            return None
+        return self.httpresponse
+
+
+    def gethttpresponsecontent(self):
+        try:
+            encodedcontent = self.httpresponse.read()
+            self.httpcontent = _decodeGzippedContent(encodedcontent)
+        except:
+            print("Error reading content: %s"%sys.exc_info()[1].__str__())
+            self.httpcontent = None
+            return None
+        return str(self.httpcontent)
+
+
 
 
 if __name__ == "__main__":
-    """
+    searchkey = sys.argv[1]
     amazonapikey = "c3f9d26365604d04affad02432e9be68"
+    spotifyid = sys.argv[2]
+    spotifysecret = sys.argv[3]
+    # Amazon
     amazon = AmazonBot(amazonapikey)
-    """
-    spotifyid = sys.argv[1]
-    spotifysecret = sys.argv[2]
-    searchtext = sys.argv[3] # "Star Wars"
+    amazon.searchforpodcasts(searchkey)
+    amazon.parsecontent(reqtype='search')
+    print(amazon.results[1]['podcastid'])
+    amazon.fetchpodcastbyId(amazon.results[1]['podcastid'])
+    amazon.parsecontent(reqtype='podcast')
+    print("First episode Id: %s"%amazon.results[0]['id'])
+    amazon.fetchpodcastepisodebyId(amazon.results[0]['id'])
+    amazon.parsecontent(reqtype='episode')
+    print("First episode link: %s"%amazon.results[0]['link'])
+    print("First episode URL: %s"%amazon.results[0]['urls'][0])
+    print("First episode listennotes: %s"%amazon.results[0]['listennotes'])
+    listennotesurl = str(amazon.results[0]['listennotes'])
+    title = str(amazon.results[0]['title'])
+    amazon.makehttprequest(listennotesurl)
+    podcastcontent = amazon.gethttpresponsecontent()
+    titleregex = makeregex(title)
+    if re.search(titleregex, podcastcontent):
+        print("Amazon: Hit the page successfully")
+    else:
+        print("Probably did not get the page correctly")
+    fp = open("dumpamazonpodcast.html", "w")
+    fp.write(podcastcontent)
+    fp.close()
+    # Spotify
     spotifybot = SpotifyBot(spotifyid, spotifysecret)
-    spotifybot.searchforpodcasts(searchtext)
-
+    spotifybot.searchforpodcasts(searchkey)
+    print("First Album URL: %s"%spotifybot.results[0]['albumspotifyurl'])
+    print("First Item URL: %s"%spotifybot.results[0]['itemspotifyurl'])
+    print("First Album ID: %s"%spotifybot.results[0]['albumid'])
+    print("First Item ID: %s"%spotifybot.results[0]['itemid'])
+    spotifybot.makehttprequest(spotifybot.results[0]['itemspotifyurl'])
+    itemcontent = spotifybot.gethttpresponsecontent()
+    fp = open("dumpspotifyitem.html", "w")
+    fp.write(itemcontent)
+    fp.close()
 
 
 """
