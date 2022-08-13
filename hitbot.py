@@ -82,6 +82,7 @@ class AmazonBot(object):
         self.httpheaders['sec-ch-ua'] = "\".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\""
         self.httpheaders['sec-ch-ua-platform'] = "Linux"
         self.httpcookies = None
+        
 
 
     def buildopenerrandomproxy(self):
@@ -270,6 +271,12 @@ class AmazonBot(object):
         return self.content
 
 
+    def existsincontent(self, regexpattern):
+        content = self.httpcontent
+        if re.search(regexpattern, content):
+            return True
+        return False
+
 
 
 class SpotifyBot(object):
@@ -303,6 +310,7 @@ class SpotifyBot(object):
         self.httpheaders['sec-ch-ua'] = "\".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\""
         self.httpheaders['sec-ch-ua-platform'] = "Linux"
         self.httpcookies = None
+        
 
 
     def searchforpodcasts(self, searchkey, limit=20):
@@ -369,6 +377,12 @@ class SpotifyBot(object):
         return str(self.httpcontent)
 
 
+    def existsincontent(self, regexpattern):
+        content = self.httpcontent
+        if re.search(regexpattern, content):
+            return True
+        return False
+
 
 
 class AppleBot(object):
@@ -399,6 +413,7 @@ class AppleBot(object):
         self.httpheaders['sec-ch-ua'] = "\".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\""
         self.httpheaders['sec-ch-ua-platform'] = "Linux"
         self.httpcookies = None
+        
 
 
     def searchforpodcasts(self, searchkey, country="us", limit=20):
@@ -426,14 +441,197 @@ class AppleBot(object):
         return str(self.httpcontent)
 
 
+    def existsincontent(self, regexpattern):
+        content = self.httpcontent
+        #print(content)
+        if re.search(regexpattern, content):
+            return True
+        return False
+
+
+class BuzzBot(object):
+    
+    def __init__(self, podlisturl):
+        self.DEBUG = 1
+        self.proxies = {'http' : [], 'https' : []}
+        self.results = []
+        # HTTP(S) request/response and parameters
+        self.httprequest = None
+        self.httpresponse = None
+        self.httpcontent = None
+        try:
+            self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][0], 'https': self.proxies['https'][0]})
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
+        except:
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+        self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Keep-Alive' : '115', 'Connection' : 'keep-alive', }
+        self.httpheaders['cache-control'] = "max-age=0"
+        self.httpheaders['upgrade-insecure-requests'] = "1"
+        self.httpheaders['sec-fetch-dest'] = "document"
+        self.httpheaders['sec-fetch-mode'] = "navigate"
+        self.httpheaders['sec-fetch-site'] = "same-origin"
+        self.httpheaders['sec-fetch-user'] = "?1"
+        self.httpheaders['sec-ch-ua-mobile'] = "?0"
+        self.httpheaders['sec-ch-ua'] = "\".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\""
+        self.httpheaders['sec-ch-ua-platform'] = "Linux"
+        self.httpcookies = None
+        self.requesturl = podlisturl
+        self.podcasttitle = ""
+        self.hitstatus = {} # A dict of site names as keys and a list of boolean values specifying hit or miss
+        
+
+    def makerequest(self):
+        self.httprequest = urllib.request.Request(self.requesturl, headers=self.httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            return None
+        self.httpcookies = self.__class__._getCookieFromResponse(self.httpresponse)
+        self.httpheaders["cookie"] = self.httpcookies
+        return self.httpresponse
+
+
+    def _getCookieFromResponse(cls, lastHttpResponse):
+        cookies = ""
+        responseCookies = lastHttpResponse.getheader("Set-Cookie")
+        pathPattern = re.compile(r"Path=/;", re.IGNORECASE)
+        domainPattern = re.compile(r"Domain=[^;,]+(;|,)", re.IGNORECASE)
+        expiresPattern = re.compile(r"Expires=[^;]+;", re.IGNORECASE)
+        maxagePattern = re.compile(r"Max-Age=[^;]+;", re.IGNORECASE)
+        samesitePattern = re.compile(r"SameSite=[^;]+;", re.IGNORECASE)
+        securePattern = re.compile(r"secure;?", re.IGNORECASE)
+        httponlyPattern = re.compile(r"HttpOnly;?", re.IGNORECASE)
+        if responseCookies and responseCookies.__len__() > 1:
+            cookieParts = responseCookies.split("Path=/")
+            for i in range(cookieParts.__len__()):
+                cookieParts[i] = re.sub(domainPattern, "", cookieParts[i])
+                cookieParts[i] = re.sub(expiresPattern, "", cookieParts[i])
+                cookieParts[i] = re.sub(maxagePattern, "", cookieParts[i])
+                cookieParts[i] = re.sub(samesitePattern, "", cookieParts[i])
+                cookieParts[i] = re.sub(securePattern, "", cookieParts[i])
+                cookieParts[i] = re.sub(pathPattern, "", cookieParts[i])
+                cookieParts[i] = re.sub(httponlyPattern, "", cookieParts[i])
+                cookieParts[i] = cookieParts[i].replace(",", "")
+                cookieParts[i] = re.sub(re.compile("\s+", re.DOTALL), "", cookieParts[i])
+                cookies += cookieParts[i]
+        cookies = cookies.replace(";;", ";")
+        return(cookies)
+
+    _getCookieFromResponse = classmethod(_getCookieFromResponse)
+
+
+    def gethttpresponsecontent(self):
+        try:
+            encodedcontent = self.httpresponse.read()
+            self.httpcontent = _decodeGzippedContent(encodedcontent)
+        except:
+            print("Error reading content: %s"%sys.exc_info()[1].__str__())
+            self.httpcontent = None
+            return None
+        return str(self.httpcontent)
+
+
+    def getpodcasturls(self):
+        content = self.httpcontent
+        soup = BeautifulSoup(content, features="html.parser")
+        podcastsites = ['apple', 'google', 'amazon', 'spotify', 'overcast', 'stitcher', 'iheart', 'tun.in', 'podcastaddict', 'castro', 'castbox', 'podchaser', 'pcs.st', 'deezer', 'listennotes', 'player.fm', 'podcastindex', 'podfriend', 'buzzsprout']
+        self.results = {}
+        if not soup:
+            print("Error getting html content: %s"%sys.exc_info()[1].__str__())
+            return self.results
+        h1tag = soup.find("h1")
+        h1contents = h1tag.renderContents().decode('utf-8')
+        self.podcasttitle = h1contents
+        self.podcasttitle = self.podcasttitle.replace("\n", "").replace("\r", "")
+        sectiontag = soup.find("section", {'class' : 'p-8'})
+        allanchors = []
+        if sectiontag is not None:
+            allanchors = sectiontag.find_all("a")
+        else:
+            print("Could not find the anchor tags for podcasts URLs")
+            return self.results
+        for anchor in allanchors:
+            if anchor is not None and 'href' in str(anchor):
+                podcasturl = anchor['href']
+                for podsite in podcastsites:
+                    if podsite in podcasturl:
+                        self.results[podsite] = podcasturl
+                    else:
+                        pass
+        return self.results
+
+
+    def hitpodcast(self, siteurl, sitename):
+        titleregex = makeregex(self.podcasttitle)
+        apikey = os.environ["AMAZON_APIKEY"]
+        clientid = os.environ["SPOTIFY_CLIENTID"]
+        clientsecret = os.environ["SPOTIFY_CLIENTSECRET"]
+        if sitename.lower() == "apple":
+            applebot = AppleBot()
+            applebot.makehttprequest(siteurl)
+            applebot.gethttpresponsecontent()
+            # Check to see if self.podcasttitle exists in the retrieved content
+            boolret = applebot.existsincontent(titleregex)
+            if "apple" in self.hitstatus.keys():
+                self.hitstatus['apple'].append(boolret)
+            else:
+                self.hitstatus['apple'] = []
+                self.hitstatus['apple'].append(boolret)
+        elif sitename.lower() == "spotify":
+            spotbot = SpotifyBot(clientid, clientsecret) # Get this from the environment
+            spotbot.makehttprequest(siteurl)
+            spotbot.gethttpresponsecontent()
+            # Check to see if self.podcasttitle exists in the retrieved content
+            boolret = spotbot.existsincontent(titleregex)
+            if "spotify" in self.hitstatus.keys():
+                self.hitstatus['spotify'].append(boolret)
+            else:
+                self.hitstatus['spotify'] = []
+                self.hitstatus['spotify'].append(boolret)
+        elif sitename.lower() == "listennotes":
+            lnbot = AmazonBot(apikey) # Get this from the environment
+            lnbot.makehttprequest(siteurl)
+            lnbot.gethttpresponsecontent()
+            # Check to see if self.podcasttitle exists in the retrieved content
+            boolret = lnbot.existsincontent(titleregex)
+            if "listennotes" in self.hitstatus.keys():
+                self.hitstatus['listennotes'].append(boolret)
+            else:
+                self.hitstatus['listennotes'] = []
+                self.hitstatus['listennotes'].append(boolret)
+        else:
+            return False
+        return boolret
 
 
 if __name__ == "__main__":
-    searchkey = sys.argv[1]
+    podlisturl = sys.argv[1]
+    buzz = BuzzBot(podlisturl)
+    buzz.makerequest()
+    buzz.gethttpresponsecontent()
+    urlsdict = buzz.getpodcasturls()
+    #print(urlsdict)
+    #print(buzz.podcasttitle)
+    threadslist = []
+    for sitename in urlsdict.keys():
+        siteurl = urlsdict[sitename]
+        t = Thread(target=buzz.hitpodcast, args=(siteurl, sitename,))
+        t.daemon = True
+        t.start()
+        threadslist.append(t)
+    #time.sleep(10) # Sleep for 10 seconds...
+    for tj in threadslist:
+        tj.join()
+    for site in buzz.hitstatus.keys():
+        if buzz.hitstatus[site].__len__() > 0:
+            print("%s : %s"%(site, buzz.hitstatus[site][0]))
+    sys.exit()
+
+    # Amazon
     amazonapikey = "c3f9d26365604d04affad02432e9be68"
     spotifyid = sys.argv[2]
     spotifysecret = sys.argv[3]
-    # Amazon
     amazon = AmazonBot(amazonapikey)
     amazon.searchforpodcasts(searchkey)
     amazon.parsecontent(reqtype='search')
@@ -455,21 +653,35 @@ if __name__ == "__main__":
         print("Amazon: Hit the page successfully")
     else:
         print("Probably did not get the page correctly")
-    fp = open("dumpamazonpodcast.html", "w")
-    fp.write(podcastcontent)
-    fp.close()
+    #fp = open("dumpamazonpodcast.html", "w")
+    #fp.write(podcastcontent)
+    #fp.close()
     # Spotify
     spotifybot = SpotifyBot(spotifyid, spotifysecret)
     spotifybot.searchforpodcasts(searchkey)
-    print("First Album URL: %s"%spotifybot.results[0]['albumspotifyurl'])
-    print("First Item URL: %s"%spotifybot.results[0]['itemspotifyurl'])
-    print("First Album ID: %s"%spotifybot.results[0]['albumid'])
-    print("First Item ID: %s"%spotifybot.results[0]['itemid'])
+    #print("First Album URL: %s"%spotifybot.results[0]['albumspotifyurl'])
+    #print("First Item URL: %s"%spotifybot.results[0]['itemspotifyurl'])
+    #print("First Album ID: %s"%spotifybot.results[0]['albumid'])
+    #print("First Item ID: %s"%spotifybot.results[0]['itemid'])
     spotifybot.makehttprequest(spotifybot.results[0]['itemspotifyurl'])
     itemcontent = spotifybot.gethttpresponsecontent()
-    fp = open("dumpspotifyitem.html", "w")
-    fp.write(itemcontent)
-    fp.close()
+    searchkeyregex = makeregex(searchkey)
+    found = 0
+    for spotres in spotifybot.results:
+        spotifybot.makehttprequest(spotres['itemspotifyurl'])
+        itemcontent = spotifybot.gethttpresponsecontent()
+        if re.search(searchkeyregex, itemcontent):
+            print("Found podcast on spotify")
+            found = 1
+            print(spotres['albumspotifyurl'])
+            print(spotres['itemspotifyurl'])
+            break
+    if not found:
+        print("Could not find the podcast on spotify")
+    #fp = open("dumpspotifyitem.html", "w")
+    #fp.write(itemcontent)
+    #fp.close()
+
 
 
 """
