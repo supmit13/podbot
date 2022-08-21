@@ -449,6 +449,69 @@ class AppleBot(object):
         return False
 
 
+    def listpodcastsonpage(self):
+        content = self.httpcontent
+        soup = BeautifulSoup(content, features="html.parser")
+        allanchortags = soup.find_all("a", {'class' : 'link tracks__track__link--block'})
+        podcastlinks = []
+        for atag in allanchortags:
+            alink = atag['href']
+            podcastlinks.append(alink)
+        return podcastlinks
+
+
+    def downloadpodcast(self, podcastpagelink):
+        self.makehttprequest(podcastpagelink)
+        content = self.gethttpresponsecontent()
+        content = content.replace("\\", "")
+        assetpattern = re.compile('\"assetUrl\":\"([^\"]+)\"', re.DOTALL)
+        aps = re.search(assetpattern, content)
+        resourceurl = ""
+        if aps:
+            resourceurl = aps.groups()[0]
+        print("Resource URL: %s"%resourceurl)
+        self.httprequest = urllib.request.Request(resourceurl, headers=self.httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            return None
+        try:
+            location = lastHttpResponse.getheader("location")
+        except:
+            print("Could not find header named 'location'")
+            location = ""
+        print(location)
+        try:
+            self.httprequest = urllib.request.Request(location, headers=self.httpheaders)
+            self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            pass
+        """
+        pagelinkpattern = re.compile("\/id(\d+)\?i=(\d+)$")
+        pps = re.search(pagelinkpattern, podcastpagelink)
+        pageid, targetid = "", ""
+        if pps:
+            pageid = str(pps.groups()[0])
+            targetid = str(pps.groups()[1])
+        t = int(time.time() * 1000)
+        clientid = "4zWEq6n6fz1Dk0amzE8z5CXzAcFzkZwZ9NXm"
+        posturl = "https://xp.apple.com/report/2/xp_amp_podcasts_perf"
+        #pageurl = "https://podcasts.apple.com/us/podcast/love-cast-101/id1632728888"
+        postdata = {"deliveryVersion":"1.0","postTime":t,"events":[{"pageId":pageid,"pageType":"Podcast","pageContext":"iTunes","location":[],"targetType":"button","targetId":targetid,"actionType":"play","storeFront":"us","isSignedIn":False,"userType":"signedOut","osLanguage":"en-GB","osLanguages":["en-GB","en-US","en"],"page":"Podcast_%s"%pageid,"pageUrl":podcastpagelink,"positionX":374,"positionY":340,"app":"web-experience-app","appVersion":"2234.1.0","baseVersion":1,"constraintProfiles":["AMPWeb"],"clientEventId":"1_1_3sElS10ZvBh0tJwtc168YW52","eventTime":t-2000,"pixelRatio":1,"resourceRevNum":"2234.1.0","screenHeight":768,"screenWidth":1366,"timezoneOffset":-330,"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36","windowInnerHeight":668,"windowInnerWidth":738,"windowOuterHeight":741,"windowOuterWidth":1299,"xpPostFrequency":60000,"xpSendMethod":"javascript","xpVersionMetricsKit":"7.3.5","eventType":"click","eventVersion":4,"clientId":"%s"%clientid},{"pageId":"%s"%pageid,"pageType":"Podcast","pageContext":"iTunes","location":[],"targetType":"button","targetId":"%s"%targetid,"actionType":"play","storeFront":"us","isSignedIn":False,"userType":"signedOut","osLanguage":"en-GB","osLanguages":["en-GB","en-US","en"],"page":"Podcast_%s"%pageid,"pageUrl":podcastpagelink,"positionX":374,"positionY":340,"app":"web-experience-app","appVersion":"2234.1.0","baseVersion":1,"constraintProfiles":["AMPWeb"],"clientEventId":"1_1_zxhbX3xMQYs1D0XFX3UlhLr2","eventTime":t+2000,"pixelRatio":1,"resourceRevNum":"2234.1.0","screenHeight":768,"screenWidth":1366,"timezoneOffset":-330,"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36","windowInnerHeight":668,"windowInnerWidth":738,"windowOuterHeight":741,"windowOuterWidth":1299,"xpPostFrequency":60000,"xpSendMethod":"javascript","xpVersionMetricsKit":"7.3.5","eventType":"click","eventVersion":4,"clientId":clientid}]}
+        postdatastr = json.dumps(postdata).encode('utf-8')
+        postheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Content-type' : 'application/json', 'Cookie' : 'geo=IN; s_cc=true; ', 'Host' : 'xp.apple.com', 'Origin' : 'https://podcasts.apple.com', 'Pragma' : 'no-cache', 'Referer' : 'https://podcasts.apple.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"'}
+        postheaders['Content-Length'] = postdatastr.__len__()
+        podrequest = urllib.request.Request(posturl, data=postdatastr, headers=postheaders)
+        try:
+            self.httpresponse = self.httpopener.open(podrequest)
+        except:
+            print("Error making request to %s: %s"%(posturl, sys.exc_info()[1].__str__()))
+            return None
+        """
+        return self.httpresponse
+
+
 class BuzzBot(object):
     
     def __init__(self, podlisturl):
@@ -571,6 +634,9 @@ class BuzzBot(object):
             applebot = AppleBot()
             applebot.makehttprequest(siteurl)
             applebot.gethttpresponsecontent()
+            podcastlinks = applebot.listpodcastsonpage()
+            for pclink in podcastlinks:
+                resp = applebot.downloadpodcast(pclink)
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = applebot.existsincontent(titleregex)
             if "apple" in self.hitstatus.keys():
