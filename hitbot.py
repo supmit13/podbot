@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 import numpy as np
 import gzip
 import io
+import hashlib, base64
 
 # Amazon APIs
 import boto3
@@ -22,6 +23,7 @@ from listennotes import podcast_api
 # Spotify APIs
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+from spotipy.oauth2 import SpotifyOAuth
 
 # Apple Podcasts library
 import podsearch
@@ -50,6 +52,20 @@ def makeregex(targetstr):
     #print(targetpattern)
     targetregex = re.compile(targetpattern, re.DOTALL|re.IGNORECASE)
     return targetregex
+
+
+# Redirects handler, in case we need to handle HTTP redirects.
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def http_error_302(self, req, fp, code, msg, headers):
+        infourl = urllib.response.addinfourl(fp, headers, req.get_full_url())
+        infourl.status = code
+        infourl.code = code
+        return infourl
+
+    http_error_300 = http_error_302
+    http_error_301 = http_error_302
+    http_error_303 = http_error_302
+    http_error_307 = http_error_302
 
 
 class AmazonBot(object):
@@ -285,6 +301,7 @@ class SpotifyBot(object):
         self.DEBUG = 1
         self.clientid = client_id
         self.clientsecret = client_secret
+        self.redirecturi = "https://localhost:8000/"
         self.spotclient = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=client_id, client_secret=client_secret))
         self.proxies = {'http' : [], 'https' : []}
         self.response = None # This would a response object from Amazon API
@@ -299,12 +316,12 @@ class SpotifyBot(object):
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
         except:
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
-        self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Keep-Alive' : '115', 'Connection' : 'keep-alive', }
-        self.httpheaders['cache-control'] = "max-age=0"
+        self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Connection' : 'keep-alive', }
+        self.httpheaders['cache-control'] = "no-cache"
         self.httpheaders['upgrade-insecure-requests'] = "1"
-        self.httpheaders['sec-fetch-dest'] = "document"
-        self.httpheaders['sec-fetch-mode'] = "navigate"
-        self.httpheaders['sec-fetch-site'] = "same-origin"
+        self.httpheaders['sec-fetch-dest'] = "empty"
+        self.httpheaders['sec-fetch-mode'] = "cors"
+        self.httpheaders['sec-fetch-site'] = "same-site"
         self.httpheaders['sec-fetch-user'] = "?1"
         self.httpheaders['sec-ch-ua-mobile'] = "?0"
         self.httpheaders['sec-ch-ua'] = "\".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\""
@@ -316,9 +333,6 @@ class SpotifyBot(object):
     def searchforpodcasts(self, searchkey, limit=20):
         self.response = self.spotclient.search(q=searchkey, limit=limit)
         self.content = self.response
-        #fp = open("spotifysearch.json", "w")
-        #fp.write(str(self.content))
-        #fp.close()
         url = self.response['tracks']['href']
         items = self.response['tracks']['items']
         self.results = []
@@ -384,6 +398,66 @@ class SpotifyBot(object):
         return False
 
 
+    def getallepisodes(self):
+        episodeurlpattern = re.compile("(https\:\/\/open\.spotify\.com\/episode\/[^\"]+)\"", re.DOTALL)
+        allepisodeurls = re.findall(episodeurlpattern, str(self.httpcontent))
+        return allepisodeurls
+
+
+    def player(self, uid):
+        scope = "user-read-playback-state,user-modify-playback-state"
+        spotobj = spotipy.Spotify(client_credentials_manager=SpotifyOAuth(scope=scope, client_id=self.clientid, client_secret=self.clientsecret, redirect_uri=self.redirecturi))
+        devices = spotobj.devices()
+        spotobj.start_playback(uris=['spotify:track:%s'%uid])
+
+
+    def getepisodeinfo(self, episodeids, accesstoken):
+        clienttoken = self.getclienttoken()
+        print(accesstoken)
+        episodeinfourl = "https://api.spotify.com/v1/episodes?ids=%s&market=from_token"%episodeids
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken}
+        epinforequest = urllib.request.Request(episodeinfourl, headers=httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(epinforequest)
+        except:
+            print("Error making episode info request to %s: %s"%(episodeinfourl, sys.exc_info()[1].__str__()))
+            return None
+        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        try:
+            episodeinfodict = json.loads(self.httpcontent)
+        except:
+            print("Error getting episodes info: %s"%sys.exc_info()[1].__str__())
+            return []
+        episodemp3list = []
+        episodes = episodeinfodict['episodes']
+        for ep in episodes:
+            playbackurl = ep['external_playback_url']
+            episodemp3list.append(playbackurl)
+        return episodemp3list
+
+
+    def getclienttoken(self):
+        requesturl = "https://clienttoken.spotify.com/v1/clienttoken"
+        cid = "d8a5ed958d274c2e8ee717e6a4b0971d" # This ought to be self.clientid
+        data = {"client_data":{"client_version":"1.1.93.595.g4dc93539","client_id":"%s"%cid,"js_sdk_data":{"device_brand":"unknown","device_model":"desktop","os":"Linux","os_version":"unknown"}}}
+        databytes = json.dumps(data).encode('utf-8')
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Content-Type' : 'application/json', 'Origin' : 'https://open.spotify.com'}
+        httpheaders['Content-Length'] = databytes.__len__()
+        clienttokenrequest = urllib.request.Request(requesturl, data=databytes, headers=httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(clienttokenrequest)
+        except:
+            print("Error making client token request to %s: %s"%(requesturl, sys.exc_info()[1].__str__()))
+            return ""
+        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        try:
+            respdict = json.loads(self.httpcontent)
+            clienttoken = respdict['granted_token']['token']
+        except:
+            clienttoken = ""
+        return clienttoken
+
+
 
 class AppleBot(object):
 
@@ -399,9 +473,9 @@ class AppleBot(object):
         self.httpcontent = None
         try:
             self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][0], 'https': self.proxies['https'][0]})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler, NoRedirectHandler())
         except:
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), NoRedirectHandler())
         self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Keep-Alive' : '115', 'Connection' : 'keep-alive', }
         self.httpheaders['cache-control'] = "max-age=0"
         self.httpheaders['upgrade-insecure-requests'] = "1"
@@ -469,7 +543,7 @@ class AppleBot(object):
         resourceurl = ""
         if aps:
             resourceurl = aps.groups()[0]
-        print("Resource URL: %s"%resourceurl)
+        #print("Resource URL: %s"%resourceurl)
         self.httprequest = urllib.request.Request(resourceurl, headers=self.httpheaders)
         try:
             self.httpresponse = self.httpopener.open(self.httprequest)
@@ -477,39 +551,39 @@ class AppleBot(object):
             print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
             return None
         try:
-            location = lastHttpResponse.getheader("location")
+            location = self.httpresponse.getheader("location")
         except:
             print("Could not find header named 'location'")
             location = ""
-        print(location)
         try:
             self.httprequest = urllib.request.Request(location, headers=self.httpheaders)
             self.httpresponse = self.httpopener.open(self.httprequest)
+            content = self.httpresponse.read()
+            redirecturlpattern = re.compile("href=\"([^\"]+)\"", re.DOTALL|re.IGNORECASE)
+            rps = re.search(redirecturlpattern, str(content))
+            if rps:
+                mediaurl = rps.groups()[0]
+            else:
+                mediaurl = ""
         except:
-            pass
-        """
-        pagelinkpattern = re.compile("\/id(\d+)\?i=(\d+)$")
-        pps = re.search(pagelinkpattern, podcastpagelink)
-        pageid, targetid = "", ""
-        if pps:
-            pageid = str(pps.groups()[0])
-            targetid = str(pps.groups()[1])
-        t = int(time.time() * 1000)
-        clientid = "4zWEq6n6fz1Dk0amzE8z5CXzAcFzkZwZ9NXm"
-        posturl = "https://xp.apple.com/report/2/xp_amp_podcasts_perf"
-        #pageurl = "https://podcasts.apple.com/us/podcast/love-cast-101/id1632728888"
-        postdata = {"deliveryVersion":"1.0","postTime":t,"events":[{"pageId":pageid,"pageType":"Podcast","pageContext":"iTunes","location":[],"targetType":"button","targetId":targetid,"actionType":"play","storeFront":"us","isSignedIn":False,"userType":"signedOut","osLanguage":"en-GB","osLanguages":["en-GB","en-US","en"],"page":"Podcast_%s"%pageid,"pageUrl":podcastpagelink,"positionX":374,"positionY":340,"app":"web-experience-app","appVersion":"2234.1.0","baseVersion":1,"constraintProfiles":["AMPWeb"],"clientEventId":"1_1_3sElS10ZvBh0tJwtc168YW52","eventTime":t-2000,"pixelRatio":1,"resourceRevNum":"2234.1.0","screenHeight":768,"screenWidth":1366,"timezoneOffset":-330,"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36","windowInnerHeight":668,"windowInnerWidth":738,"windowOuterHeight":741,"windowOuterWidth":1299,"xpPostFrequency":60000,"xpSendMethod":"javascript","xpVersionMetricsKit":"7.3.5","eventType":"click","eventVersion":4,"clientId":"%s"%clientid},{"pageId":"%s"%pageid,"pageType":"Podcast","pageContext":"iTunes","location":[],"targetType":"button","targetId":"%s"%targetid,"actionType":"play","storeFront":"us","isSignedIn":False,"userType":"signedOut","osLanguage":"en-GB","osLanguages":["en-GB","en-US","en"],"page":"Podcast_%s"%pageid,"pageUrl":podcastpagelink,"positionX":374,"positionY":340,"app":"web-experience-app","appVersion":"2234.1.0","baseVersion":1,"constraintProfiles":["AMPWeb"],"clientEventId":"1_1_zxhbX3xMQYs1D0XFX3UlhLr2","eventTime":t+2000,"pixelRatio":1,"resourceRevNum":"2234.1.0","screenHeight":768,"screenWidth":1366,"timezoneOffset":-330,"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36","windowInnerHeight":668,"windowInnerWidth":738,"windowOuterHeight":741,"windowOuterWidth":1299,"xpPostFrequency":60000,"xpSendMethod":"javascript","xpVersionMetricsKit":"7.3.5","eventType":"click","eventVersion":4,"clientId":clientid}]}
-        postdatastr = json.dumps(postdata).encode('utf-8')
-        postheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Content-type' : 'application/json', 'Cookie' : 'geo=IN; s_cc=true; ', 'Host' : 'xp.apple.com', 'Origin' : 'https://podcasts.apple.com', 'Pragma' : 'no-cache', 'Referer' : 'https://podcasts.apple.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"'}
-        postheaders['Content-Length'] = postdatastr.__len__()
-        podrequest = urllib.request.Request(posturl, data=postdatastr, headers=postheaders)
+            mediaurl = ""
+        mediaurl = mediaurl.replace("amp;", "")
+        print("Media URL: %s"%mediaurl)
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity;q=1, *;q=0', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://podcasts.apple.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'no-cors', 'Sec-Fetch-Dest' : 'audio', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'range' : 'bytes=0-'}
         try:
-            self.httpresponse = self.httpopener.open(podrequest)
+            self.httprequest = urllib.request.Request(mediaurl, headers=httpheaders)
+            self.httpresponse = self.httpopener.open(self.httprequest)
+            mediacontent = self.httpresponse.read()
         except:
-            print("Error making request to %s: %s"%(posturl, sys.exc_info()[1].__str__()))
-            return None
-        """
-        return self.httpresponse
+            print("Error in making media request: %s"%sys.exc_info()[1].__str__())
+            mediacontent = b""
+        if self.DEBUG:
+            t = str(int(time.time() * 1000))
+            dumpfile = "dumps/" + t + ".mp3"
+            fp = open(dumpfile, "wb")
+            fp.write(mediacontent)
+            fp.close()
+        return mediacontent
 
 
 class BuzzBot(object):
@@ -646,8 +720,31 @@ class BuzzBot(object):
                 self.hitstatus['apple'].append(boolret)
         elif sitename.lower() == "spotify":
             spotbot = SpotifyBot(clientid, clientsecret) # Get this from the environment
+            #print("Spotify: %s"%siteurl)
             spotbot.makehttprequest(siteurl)
             spotbot.gethttpresponsecontent()
+            episodeurls = spotbot.getallepisodes()
+            episodeidlist = []
+            episodeurlpattern = re.compile("https\:\/\/open\.spotify\.com\/episode\/([^\"]+)$")
+            for epurl in episodeurls:
+                eps = re.search(episodeurlpattern, epurl)
+                if eps:
+                    epid = eps.groups()[0]
+                    episodeidlist.append(epid)
+            episodeids = ",".join(episodeidlist)
+            #print(episodeurls)
+            clientid, accesstoken = "", ""
+            clientidpattern = re.compile("\"clientId\"\:\"([^\"]+)\"", re.DOTALL)
+            accesstokenpattern = re.compile("\"accessToken\"\:\"([^\"]+)\",", re.DOTALL)
+            cps = re.search(clientidpattern, spotbot.httpcontent)
+            aps = re.search(accesstokenpattern, spotbot.httpcontent)
+            if cps:
+                clientid = cps.groups()[0]
+            if aps:
+                accesstoken = aps.groups()[0]
+            episodemp3list = spotbot.getepisodeinfo(episodeids, accesstoken)
+            httpheaders = {}
+            print(episodemp3list)
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = spotbot.existsincontent(titleregex)
             if "spotify" in self.hitstatus.keys():
@@ -657,6 +754,7 @@ class BuzzBot(object):
                 self.hitstatus['spotify'].append(boolret)
         elif sitename.lower() == "listennotes":
             lnbot = AmazonBot(apikey) # Get this from the environment
+            print("Amazon: %s"%siteurl)
             lnbot.makehttprequest(siteurl)
             lnbot.gethttpresponsecontent()
             # Check to see if self.podcasttitle exists in the retrieved content
