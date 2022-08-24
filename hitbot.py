@@ -30,6 +30,8 @@ import podsearch
 
 # Tkinter library for GUI
 from tkinter import *
+from tkinter.scrolledtext import ScrolledText
+from tkinter import ttk
 
 
 def _decodeGzippedContent(encoded_content):
@@ -300,7 +302,8 @@ class AmazonBot(object):
         return False
 
 
-    def getvisualdict(self, urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl):
+    def getvisualdict(self, paramstuple):
+        urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl = paramstuple[0], paramstuple[1], paramstuple[2], paramstuple[3], paramstuple[4], paramstuple[5], paramstuple[6], paramstuple[7], paramstuple[8]
         siteurlparts = siteurl.split("/")
         siteurl = "/".join(siteurlparts[2:])
         ts = int(time.time() * 1000)
@@ -318,7 +321,11 @@ class AmazonBot(object):
             print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
             return {}
         returndata = _decodeGzippedContent(self.httpresponse.read())
-        returndict = json.loads(returndata)
+        try:
+            returndict = json.loads(returndata.encode('utf-8'))
+        except:
+            print("Error loading json data: %s"%(sys.exc_info()[1].__str__()))
+            returndict = {}
         return returndict
 
 
@@ -645,9 +652,9 @@ class AppleBot(object):
 
 class BuzzBot(object):
     
-    def __init__(self, podlisturl, amazonkey, spotifyclientid, spotifyclientsecret):
+    def __init__(self, podlisturl, amazonkey, spotifyclientid, spotifyclientsecret, proxieslist=[]):
         self.DEBUG = 1
-        self.proxies = {'http' : [], 'https' : []}
+        self.proxies = {'http' : [], 'https' : proxieslist,}
         self.amazonkey = amazonkey
         self.spotifyclientid = spotifyclientid
         self.spotifyclientsecret = spotifyclientsecret
@@ -868,7 +875,8 @@ class BuzzBot(object):
                 csrfts = css.groups()[0]
             if crs:
                 csrfrnd = crs.groups()[0]
-            datadict = ambot.getvisualdict(urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl)
+            paramstuple = (urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl)
+            datadict = ambot.getvisualdict(paramstuple)
             print(datadict)
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = ambot.existsincontent(titleregex)
@@ -893,40 +901,49 @@ class GUI(object):
         self.spotifyclientsecret = ""
         self.mainwin = Tk()
 
+        self.proxylabel = Label(self.mainwin, text="Add (https) Proxies: ", width=25, justify=LEFT, relief=RAISED)
+        self.proxylabel.grid(row=0, column=0, sticky=W)
+        self.proxytext = ScrolledText(self.mainwin, bg="white", fg="blue", width=40, height=10)
+        self.proxytext.grid(row=0, column=1, columnspan=3)
+
+        self.separator = ttk.Separator(self.mainwin, orient=HORIZONTAL, style='TSeparator', class_= ttk.Separator)
+        self.separator.grid(row=1, column=0, columnspan=4)
+
         self.amazonkeylabel = Label(self.mainwin, text="Amazon Key: ", width=25, justify=LEFT, relief=RAISED)
-        self.amazonkeylabel.grid(row=0, column=0, sticky=W)
+        self.amazonkeylabel.grid(row=2, column=0, sticky=W)
         self.amazonkeyentry = Entry(self.mainwin, width=40, borderwidth=1)
-        self.amazonkeyentry.grid(row=0, column=1, columnspan=3)
+        self.amazonkeyentry.grid(row=2, column=1, columnspan=3)
 
         self.spotifyclientidlabel = Label(self.mainwin, text="Spotify Client ID: ", width=25, justify=LEFT, relief=RAISED)
-        self.spotifyclientidlabel.grid(row=1, column=0, sticky=W)
+        self.spotifyclientidlabel.grid(row=3, column=0, sticky=W)
         self.spotifyclientidentry = Entry(self.mainwin, width=40, borderwidth=1)
-        self.spotifyclientidentry.grid(row=1, column=1, columnspan=3)
+        self.spotifyclientidentry.grid(row=3, column=1, columnspan=3)
         self.spotifyclientsecretlabel = Label(self.mainwin, text="Spotify Client Secret: ", width=25, justify=LEFT, relief=RAISED)
-        self.spotifyclientsecretlabel.grid(row=2, column=0, sticky=W)
+        self.spotifyclientsecretlabel.grid(row=4, column=0, sticky=W)
         self.spotifyclientsecretentry = Entry(self.mainwin, width=40, borderwidth=1)
-        self.spotifyclientsecretentry.grid(row=2, column=1, columnspan=3)
+        self.spotifyclientsecretentry.grid(row=4, column=1, columnspan=3)
 
         self.targeturl = ""
         self.urllabeltext = StringVar()
         self.msglabeltext = StringVar()
         self.urllabel = Label(self.mainwin, textvariable=self.urllabeltext, width=25, justify=LEFT, relief=RAISED)
-        self.urllabel.grid(row=3, column=0, sticky=W)
+        self.urllabel.grid(row=5, column=0, sticky=W)
         self.urllabeltext.set("Enter Target URL: ")
         self.targeturlentry = Entry(self.mainwin, width=40, borderwidth=1)
-        self.targeturlentry.grid(row=3, column=1, columnspan=3)
+        self.targeturlentry.grid(row=5, column=1, columnspan=3)
         self.runbutton = Button(self.mainwin, text="Start Bot", command=self.startbot)
-        self.runbutton.grid(row=4, column=0)
+        self.runbutton.grid(row=6, column=0)
         self.stopbutton = Button(self.mainwin, text="Stop Bot", command=self.stopbot)
-        self.stopbutton.grid(row=4, column=1)
+        self.stopbutton.grid(row=6, column=1)
         self.closebutton = Button(self.mainwin, text="Close Window", command=self.closebot)
-        self.closebutton.grid(row=4, column=2)
+        self.closebutton.grid(row=6, column=2)
         self.messagelabel = Message(self.mainwin, textvariable=self.msglabeltext, bg="white", width=400, relief=SUNKEN)
-        self.messagelabel.grid(row=5, columnspan=3)
+        self.messagelabel.grid(row=7, columnspan=3)
         
         self.buzz = None
         self.threadslist = []
         self.rt = None
+        self.proxieslist = []
 
         self.mainwin.mainloop()
 
@@ -970,6 +987,14 @@ class GUI(object):
             self.messagelabel.configure(foreground="red", width=400)
             self.msglabeltext.set(self.errmsg)
             return False
+        proxiestext = self.proxytext.get('1.0', 'end-1c')
+        proxieslines = proxiestext.split("\n")
+        self.proxieslist = []
+        self.httpspattern = re.compile("^https\:\/\/", re.IGNORECASE)
+        for line in proxieslines:
+            if not re.search(self.httpspattern, line):
+                continue
+            self.proxieslist.append(line)
         # Start bot in a background thread...
         self.rt = Thread(target=self.runbot, args=(self.targeturl,))
         self.rt.daemon = True
@@ -981,7 +1006,7 @@ class GUI(object):
 
 
     def runbot(self, targeturl):
-        self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret)
+        self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret, self.proxieslist)
         self.buzz.makerequest()
         self.buzz.gethttpresponsecontent()
         urlsdict = self.buzz.getpodcasturls()
