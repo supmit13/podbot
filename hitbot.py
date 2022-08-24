@@ -28,6 +28,9 @@ from spotipy.oauth2 import SpotifyOAuth
 # Apple Podcasts library
 import podsearch
 
+# Tkinter library for GUI
+from tkinter import *
+
 
 def _decodeGzippedContent(encoded_content):
     response_stream = io.BytesIO(encoded_content)
@@ -118,6 +121,9 @@ class AmazonBot(object):
         except:
             print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
             return None
+        self.httpcookies = BuzzBot._getCookieFromResponse(self.httpresponse)
+        #print(self.httpresponse.headers)
+        self.httpheaders['cookie'] = self.httpcookies
         return self.httpresponse
 
 
@@ -294,6 +300,28 @@ class AmazonBot(object):
         return False
 
 
+    def getvisualdict(self, urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl):
+        siteurlparts = siteurl.split("/")
+        siteurl = "/".join(siteurlparts[2:])
+        ts = int(time.time() * 1000)
+        httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'content-encoding' : 'amz-1.0', 'content-type' : 'application/json; charset=UTF-8', 'origin' : 'https://music.amazon.com', 'pragma' : 'no-cache', 'referer' : siteurl, 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'same-origin', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amz-target' : 'com.amazon.dmpbrowsevisualservice.skills.DMPBrowseVisualService.ShowPodcastWebSkill', 'x-amzn-requestid' : ''}
+        httpheaders['cookie'] = ""
+        httpheaders['cookie'] += self.httpheaders['cookie']
+        print(httpheaders['cookie'])
+        datadict = {"preset":"{\"id\":\"%s\",\"nextToken\":null}"%urlid,"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"2e9db538-680f-44e4-a2bf-bb0d8690132e","sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"},"hidePromptPreference":{"preferenceMap":{},"__type":"Podcast.FollowPromptInterface.v1_0#HidePromptPreferenceClientState"}},"extra":{}}
+        postdata = json.dumps(datadict).encode('utf-8')
+        httpheaders['content-length'] = postdata.__len__()
+        self.httprequest = urllib.request.Request("https://music.amazon.com/EU/api/podcast/browse/visual", data=postdata, headers=httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            return {}
+        returndata = _decodeGzippedContent(self.httpresponse.read())
+        returndict = json.loads(returndata)
+        return returndict
+
+
 
 class SpotifyBot(object):
     
@@ -316,17 +344,37 @@ class SpotifyBot(object):
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
         except:
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
-        self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Connection' : 'keep-alive', }
+        self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Connection' : 'keep-alive', }
         self.httpheaders['cache-control'] = "no-cache"
         self.httpheaders['upgrade-insecure-requests'] = "1"
-        self.httpheaders['sec-fetch-dest'] = "empty"
-        self.httpheaders['sec-fetch-mode'] = "cors"
-        self.httpheaders['sec-fetch-site'] = "same-site"
+        self.httpheaders['sec-fetch-dest'] = "document"
+        self.httpheaders['sec-fetch-mode'] = "navigate"
+        self.httpheaders['sec-fetch-site'] = "none"
         self.httpheaders['sec-fetch-user'] = "?1"
         self.httpheaders['sec-ch-ua-mobile'] = "?0"
         self.httpheaders['sec-ch-ua'] = "\".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\""
         self.httpheaders['sec-ch-ua-platform'] = "Linux"
-        self.httpcookies = None
+        requesturl = "https://open.spotify.com/search"
+        self.httprequest = urllib.request.Request(requesturl, headers=self.httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            return None
+        #print(self.httpresponse.headers)
+        self.httpcookies = BuzzBot._getCookieFromResponse(self.httpresponse)
+        # Prefix some standard cookies...
+        d = datetime.now()
+        day = d.strftime("%a")
+        mon = d.strftime("%b")
+        dd = d.strftime("%d")
+        year = d.strftime("%Y")
+        hh = d.strftime("%H")
+        mm = d.strftime("%M")
+        ss = d.strftime("%S")
+        sp_dc="sp_dc=AQAJlPHtM1FpS3VcivEeBLIeIhPvp1oc34uyEitFyyAaSyvXs8MjoEQwArCRtPO9yMkJwr4x9PMsTXj9RGO9VeLnMTX-Z24HrI_bkT6P76p09HTEwS1OqLTHd_ghJpZNKmrwlEiZMoVs8XvU8__qb_RbGwRbrcg5; " # This value is necessary in cookies for valid requests... Needs to be investigated later for finding out how to create it.
+        self.httpheaders['cookie'] = "sss=1; sp_m=in-en; _cs_c=0; " + sp_dc + "sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1661184464317%3B1661190235932%3B5%3B21; OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
+        #print(self.httpheaders['cookie'])
         
 
 
@@ -370,8 +418,10 @@ class SpotifyBot(object):
         return self.results
 
 
-    def makehttprequest(self, requrl):
-        self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
+    def makehttprequest(self, requrl, headers=None):
+        if headers is None:
+            headers = self.httpheaders
+        self.httprequest = urllib.request.Request(requrl, headers=headers)
         try:
             self.httpresponse = self.httpopener.open(self.httprequest)
         except:
@@ -413,7 +463,7 @@ class SpotifyBot(object):
 
     def getepisodeinfo(self, episodeids, accesstoken):
         clienttoken = self.getclienttoken()
-        print(accesstoken)
+        #print(accesstoken)
         episodeinfourl = "https://api.spotify.com/v1/episodes?ids=%s&market=from_token"%episodeids
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken}
         epinforequest = urllib.request.Request(episodeinfourl, headers=httpheaders)
@@ -456,6 +506,13 @@ class SpotifyBot(object):
         except:
             clienttoken = ""
         return clienttoken
+
+
+    def getepisode(self, epurl):
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Cookie' : self.httpheaders['cookie']}
+        self.makehttprequest(epurl, headers=httpheaders)
+        content = self.httpresponse.read() # Actually, we don't need the content.
+        return content
 
 
 
@@ -568,7 +625,7 @@ class AppleBot(object):
         except:
             mediaurl = ""
         mediaurl = mediaurl.replace("amp;", "")
-        print("Media URL: %s"%mediaurl)
+        #print("Media URL: %s"%mediaurl)
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity;q=1, *;q=0', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://podcasts.apple.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'no-cors', 'Sec-Fetch-Dest' : 'audio', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'range' : 'bytes=0-'}
         try:
             self.httprequest = urllib.request.Request(mediaurl, headers=httpheaders)
@@ -579,7 +636,7 @@ class AppleBot(object):
             mediacontent = b""
         if self.DEBUG:
             t = str(int(time.time() * 1000))
-            dumpfile = "dumps/" + t + ".mp3"
+            dumpfile = "dumps/apple_" + t + ".mp3"
             fp = open(dumpfile, "wb")
             fp.write(mediacontent)
             fp.close()
@@ -588,9 +645,12 @@ class AppleBot(object):
 
 class BuzzBot(object):
     
-    def __init__(self, podlisturl):
+    def __init__(self, podlisturl, amazonkey, spotifyclientid, spotifyclientsecret):
         self.DEBUG = 1
         self.proxies = {'http' : [], 'https' : []}
+        self.amazonkey = amazonkey
+        self.spotifyclientid = spotifyclientid
+        self.spotifyclientsecret = spotifyclientsecret
         self.results = []
         # HTTP(S) request/response and parameters
         self.httprequest = None
@@ -701,9 +761,9 @@ class BuzzBot(object):
 
     def hitpodcast(self, siteurl, sitename):
         titleregex = makeregex(self.podcasttitle)
-        apikey = os.environ["AMAZON_APIKEY"]
-        clientid = os.environ["SPOTIFY_CLIENTID"]
-        clientsecret = os.environ["SPOTIFY_CLIENTSECRET"]
+        apikey = self.amazonkey
+        clientid = self.spotifyclientid
+        clientsecret = self.spotifyclientsecret
         if sitename.lower() == "apple":
             applebot = AppleBot()
             applebot.makehttprequest(siteurl)
@@ -744,7 +804,14 @@ class BuzzBot(object):
                 accesstoken = aps.groups()[0]
             episodemp3list = spotbot.getepisodeinfo(episodeids, accesstoken)
             httpheaders = {}
-            print(episodemp3list)
+            # Get the episodes...
+            for epurl in episodemp3list:
+                content = spotbot.getepisode(epurl)
+                print(epurl)
+                t = str(int(time.time() * 1000))
+                fs = open("dumps/spotify_%s.mp3"%t, "wb")
+                fs.write(content)
+                fs.close()
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = spotbot.existsincontent(titleregex)
             if "spotify" in self.hitstatus.keys():
@@ -752,46 +819,207 @@ class BuzzBot(object):
             else:
                 self.hitstatus['spotify'] = []
                 self.hitstatus['spotify'].append(boolret)
-        elif sitename.lower() == "listennotes":
-            lnbot = AmazonBot(apikey) # Get this from the environment
+        elif sitename.lower() == "amazon":
+            ambot = AmazonBot(apikey) # Get this from the environment
             print("Amazon: %s"%siteurl)
-            lnbot.makehttprequest(siteurl)
-            lnbot.gethttpresponsecontent()
-            # Check to see if self.podcasttitle exists in the retrieved content
-            boolret = lnbot.existsincontent(titleregex)
-            if "listennotes" in self.hitstatus.keys():
-                self.hitstatus['listennotes'].append(boolret)
+            idpattern = re.compile("https\:\/\/music\.amazon\.com\/podcasts\/(.*)$")
+            idps = re.search(idpattern, siteurl)
+            urlid = ""
+            if idps:
+                urlid = idps.groups()[0]
             else:
-                self.hitstatus['listennotes'] = []
-                self.hitstatus['listennotes'].append(boolret)
+                pass # If urlid can't be found, then there is actually not much we can do.
+            ambot.makehttprequest(siteurl)
+            ambot.gethttpresponsecontent()
+            devicetypepattern = re.compile("\"deviceType\"\:\s*\"([^\"]+)\",", re.DOTALL)
+            deviceidpattern = re.compile("\"deviceId\"\:\s*\"([^\"]+)\",", re.DOTALL)
+            faviconpattern = re.compile("\"faviconUrl\"\:\s*\"([^\"]+)\",", re.DOTALL)
+            marketplacepattern = re.compile("\"marketplaceId\"\:\s*\"([^\"]+)\",", re.DOTALL)
+            sessionidpattern = re.compile("\"sessionId\"\:\s*\"([^\"]+)\",", re.DOTALL)
+            ipaddresspattern = re.compile("\"ipAddress\"\:\s*\"([^\"]+)\",", re.DOTALL)
+            csrftokenpattern = re.compile("\"token\"\:\s*\"([^\"]+)\",", re.DOTALL)
+            csrftspattern = re.compile("\"ts\"\:\s*\"([^\"]+)\",", re.DOTALL)
+            csrfrndpattern = re.compile("\"rnd\"\:\s*\"([^\"]+)\",", re.DOTALL)
+            devtype, devid, favicon, mktplace, sessid, ipaddr, csrftoken, csrfts, csrfrnd = "", "", "", "", "", "", "", "", ""
+            dts = re.search(devicetypepattern, ambot.httpcontent)
+            dis = re.search(deviceidpattern, ambot.httpcontent)
+            fis = re.search(faviconpattern, ambot.httpcontent)
+            mks = re.search(marketplacepattern, ambot.httpcontent)
+            sss = re.search(sessionidpattern, ambot.httpcontent)
+            ips = re.search(ipaddresspattern, ambot.httpcontent)
+            cts = re.search(csrftokenpattern, ambot.httpcontent)
+            css = re.search(csrftspattern, ambot.httpcontent)
+            crs = re.search(csrfrndpattern, ambot.httpcontent)
+            if dts:
+                devtype = dts.groups()[0]
+            if dis:
+                devid = dis.groups()[0]
+            if fis:
+                favicon = fis.groups()[0]
+            if mks:
+                mktplace = mks.groups()[0]
+            if sss:
+                sessid = sss.groups()[0]
+            if ips:
+                ipaddr = ips.groups()[0]
+            if cts:
+                csrftoken = cts.groups()[0]
+            if css:
+                csrfts = css.groups()[0]
+            if crs:
+                csrfrnd = crs.groups()[0]
+            datadict = ambot.getvisualdict(urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl)
+            print(datadict)
+            # Check to see if self.podcasttitle exists in the retrieved content
+            boolret = ambot.existsincontent(titleregex)
+            if "amazon" in self.hitstatus.keys():
+                self.hitstatus['amazon'].append(boolret)
+            else:
+                self.hitstatus['amazon'] = []
+                self.hitstatus['amazon'].append(boolret)
         else:
             return False
         return boolret
 
 
-if __name__ == "__main__":
-    podlisturl = sys.argv[1]
-    buzz = BuzzBot(podlisturl)
-    buzz.makerequest()
-    buzz.gethttpresponsecontent()
-    urlsdict = buzz.getpodcasturls()
-    #print(urlsdict)
-    #print(buzz.podcasttitle)
-    threadslist = []
-    for sitename in urlsdict.keys():
-        siteurl = urlsdict[sitename]
-        t = Thread(target=buzz.hitpodcast, args=(siteurl, sitename,))
-        t.daemon = True
-        t.start()
-        threadslist.append(t)
-    #time.sleep(10) # Sleep for 10 seconds...
-    for tj in threadslist:
-        tj.join()
-    for site in buzz.hitstatus.keys():
-        if buzz.hitstatus[site].__len__() > 0:
-            print("%s : %s"%(site, buzz.hitstatus[site][0]))
-    sys.exit()
 
+class GUI(object):
+
+    def __init__(self):
+        self.emptystringpattern = re.compile("^\s*$")
+        self.httppattern = re.compile("^https?", re.IGNORECASE)
+        self.amazonkey = ""
+        self.spotifyclientid = ""
+        self.spotifyclientsecret = ""
+        self.mainwin = Tk()
+
+        self.amazonkeylabel = Label(self.mainwin, text="Amazon Key: ", width=25, justify=LEFT, relief=RAISED)
+        self.amazonkeylabel.grid(row=0, column=0, sticky=W)
+        self.amazonkeyentry = Entry(self.mainwin, width=40, borderwidth=1)
+        self.amazonkeyentry.grid(row=0, column=1, columnspan=3)
+
+        self.spotifyclientidlabel = Label(self.mainwin, text="Spotify Client ID: ", width=25, justify=LEFT, relief=RAISED)
+        self.spotifyclientidlabel.grid(row=1, column=0, sticky=W)
+        self.spotifyclientidentry = Entry(self.mainwin, width=40, borderwidth=1)
+        self.spotifyclientidentry.grid(row=1, column=1, columnspan=3)
+        self.spotifyclientsecretlabel = Label(self.mainwin, text="Spotify Client Secret: ", width=25, justify=LEFT, relief=RAISED)
+        self.spotifyclientsecretlabel.grid(row=2, column=0, sticky=W)
+        self.spotifyclientsecretentry = Entry(self.mainwin, width=40, borderwidth=1)
+        self.spotifyclientsecretentry.grid(row=2, column=1, columnspan=3)
+
+        self.targeturl = ""
+        self.urllabeltext = StringVar()
+        self.msglabeltext = StringVar()
+        self.urllabel = Label(self.mainwin, textvariable=self.urllabeltext, width=25, justify=LEFT, relief=RAISED)
+        self.urllabel.grid(row=3, column=0, sticky=W)
+        self.urllabeltext.set("Enter Target URL: ")
+        self.targeturlentry = Entry(self.mainwin, width=40, borderwidth=1)
+        self.targeturlentry.grid(row=3, column=1, columnspan=3)
+        self.runbutton = Button(self.mainwin, text="Start Bot", command=self.startbot)
+        self.runbutton.grid(row=4, column=0)
+        self.stopbutton = Button(self.mainwin, text="Stop Bot", command=self.stopbot)
+        self.stopbutton.grid(row=4, column=1)
+        self.closebutton = Button(self.mainwin, text="Close Window", command=self.closebot)
+        self.closebutton.grid(row=4, column=2)
+        self.messagelabel = Message(self.mainwin, textvariable=self.msglabeltext, bg="white", width=400, relief=SUNKEN)
+        self.messagelabel.grid(row=5, columnspan=3)
+        
+        self.buzz = None
+        self.threadslist = []
+        self.rt = None
+
+        self.mainwin.mainloop()
+
+
+    def startbot(self):
+        self.targeturl = self.targeturlentry.get()
+        if self.targeturl == "":
+            self.messagelabel.configure(foreground="red", width=400)
+            self.msglabeltext.set("Target URL cannot be empty")
+            return False
+        eps = re.search(self.emptystringpattern, self.targeturl)
+        if eps:
+            self.messagelabel.configure(foreground="red", width=400)
+            self.msglabeltext.set("Target URL is not valid")
+            return False
+        hps = re.search(self.httppattern, self.targeturl)
+        if not hps:
+            self.messagelabel.configure(foreground="red", width=400)
+            self.msglabeltext.set("Target URL is not valid")
+            return False
+        self.errmsg = ""
+        self.amazonkey = self.amazonkeyentry.get()
+        self.spotifyclientid = self.spotifyclientidentry.get()
+        self.spotifyclientsecret = self.spotifyclientsecretentry.get()
+        if self.amazonkey == "":
+            try:
+                self.amazonkey = os.environ["AMAZON_APIKEY"]
+            except:
+                self.errmsg = "\nCould not find Amazon API Key"
+        if self.spotifyclientid == "":
+            try:
+                self.spotifyclientid = os.environ["SPOTIFY_CLIENTID"]
+            except:
+                self.errmsg = "\nCould not find Spotify Client ID"
+        if self.spotifyclientsecret == "":
+            try:
+                self.spotifyclientsecret = os.environ["SPOTIFY_CLIENTSECRET"]
+            except:
+                self.errmsg = "\nCould not find Spotify Client Secret"
+        if self.errmsg != "":
+            self.messagelabel.configure(foreground="red", width=400)
+            self.msglabeltext.set(self.errmsg)
+            return False
+        # Start bot in a background thread...
+        self.rt = Thread(target=self.runbot, args=(self.targeturl,))
+        self.rt.daemon = True
+        self.rt.start()
+        self.messagelabel.configure(foreground="green", width=400)
+        self.msglabeltext.set("Operation in progress...")
+        # ... and return to user
+        return True
+
+
+    def runbot(self, targeturl):
+        self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret)
+        self.buzz.makerequest()
+        self.buzz.gethttpresponsecontent()
+        urlsdict = self.buzz.getpodcasturls()
+        self.threadslist = []
+        for sitename in urlsdict.keys():
+            siteurl = urlsdict[sitename]
+            t = Thread(target=self.buzz.hitpodcast, args=(siteurl, sitename,))
+            t.daemon = True
+            t.start()
+            self.threadslist.append(t)
+        time.sleep(2) # sleep 2 seconds.
+        for tj in self.threadslist:
+            tj.join()
+        for site in self.buzz.hitstatus.keys():
+            if self.buzz.hitstatus[site].__len__() > 0:
+                self.messagelabel.configure(foreground="green", width=400)
+                self.msglabeltext.set("%s : %s"%(site, self.buzz.hitstatus[site][0]))
+        self.messagelabel.configure(foreground="blue", width=400)
+        self.msglabeltext.set("Finished hitting targets.")
+        return True
+
+
+    def closebot(self):
+        if self.rt is not None:
+            self.rt.join()
+        sys.exit()
+
+
+    def stopbot(self):
+        if self.rt is not None:
+            self.rt.join()
+        return None
+
+
+if __name__ == "__main__":
+    gui = GUI()
+
+    """
     # Amazon
     amazonapikey = "c3f9d26365604d04affad02432e9be68"
     spotifyid = sys.argv[2]
@@ -845,7 +1073,7 @@ if __name__ == "__main__":
     #fp = open("dumpspotifyitem.html", "w")
     #fp.write(itemcontent)
     #fp.close()
-
+    """
 
 
 """
