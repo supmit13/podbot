@@ -388,7 +388,7 @@ class SpotifyBot(object):
         ss = d.strftime("%S")
         #sp_dc="sp_dc=AQAJlPHtM1FpS3VcivEeBLIeIhPvp1oc34uyEitFyyAaSyvXs8MjoEQwArCRtPO9yMkJwr4x9PMsTXj9RGO9VeLnMTX-Z24HrI_bkT6P76p09HTEwS1OqLTHd_ghJpZNKmrwlEiZMoVs8XvU8__qb_RbGwRbrcg5; " # This value is necessary in cookies for valid requests... Needs to be investigated later for finding out how to create it.
         sp_dc = ""
-        self.httpheaders['cookie'] = "sss=1; sp_m=in-en; _cs_c=0; " + sp_dc + "sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1661533841086%3B1661533922750%3B7%3B29; OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
+        self.httpheaders['cookie'] = "sss=1; sp_m=in-en; _cs_c=0; " + sp_dc + "sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1661618190878%3B1661621393364%3B8%3B35; OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
         if self.DEBUG:
             print("Cookie Sent: %s"%self.httpheaders['cookie'])
         
@@ -506,7 +506,7 @@ class SpotifyBot(object):
 
     def getclienttoken(self):
         requesturl = "https://clienttoken.spotify.com/v1/clienttoken"
-        cid = "d8a5ed958d274c2e8ee717e6a4b0971d" # This ought to be self.clientid
+        cid = "d8a5ed958d274c2e8ee717e6a4b0971d" # This ought to be self.clientid. Need to find a different clientid if this one gets blacklisted.
         data = {"client_data":{"client_version":"1.1.94.50.g7884d765","client_id":"%s"%cid,"js_sdk_data":{"device_brand":"unknown","device_model":"desktop","os":"Linux","os_version":"unknown"}}}
         databytes = json.dumps(data).encode('utf-8')
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Content-Type' : 'application/json', 'Origin' : 'https://open.spotify.com'}
@@ -693,7 +693,25 @@ class BuzzBot(object):
         self.requesturl = podlisturl
         self.podcasttitle = ""
         self.hitstatus = {} # A dict of site names as keys and a list of boolean values specifying hit or miss
-        
+        self.amazonsettarget = -1
+        self.spotifysettarget = -1
+        self.applesettarget = -1
+
+
+    def settargetcounts(self, amazonsettarget, spotifysettarget, applesettarget):
+        try:
+            self.amazonsettarget = int(amazonsettarget)
+        except:
+            pass
+        try:
+            self.spotifysettarget = int(spotifysettarget)
+        except:
+            pass
+        try:
+            self.applesettarget = int(applesettarget)
+        except:
+            pass
+
 
     def makerequest(self):
         self.httprequest = urllib.request.Request(self.requesturl, headers=self.httpheaders)
@@ -777,18 +795,28 @@ class BuzzBot(object):
         return self.results
 
 
-    def hitpodcast(self, siteurl, sitename):
+    def hitpodcast(self, siteurl, sitename, targetcount=-1):
         titleregex = makeregex(self.podcasttitle)
         apikey = self.amazonkey
         clientid = self.spotifyclientid
         clientsecret = self.spotifyclientsecret
+        ctr = 0
+        if targetcount == -1:
+            targetcount = 10000 # We set this to 10000, a suitably large number of hits
         if sitename.lower() == "apple":
+            if self.DEBUG:
+                print(siteurl)
             applebot = AppleBot()
             applebot.makehttprequest(siteurl)
             applebot.gethttpresponsecontent()
             podcastlinks = applebot.listpodcastsonpage()
-            for pclink in podcastlinks:
-                resp = applebot.downloadpodcast(pclink)
+            ctr = 0
+            while ctr < targetcount :
+                if self.DEBUG:
+                    print("APPLE ITERATION #%s ======================="%ctr)
+                for pclink in podcastlinks:
+                    resp = applebot.downloadpodcast(pclink)
+                ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = applebot.existsincontent(titleregex)
             if "apple" in self.hitstatus.keys():
@@ -798,12 +826,14 @@ class BuzzBot(object):
                 self.hitstatus['apple'].append(boolret)
         elif sitename.lower() == "spotify":
             spotbot = SpotifyBot(clientid, clientsecret) # Get this from the environment
-            #print("Spotify: %s"%siteurl)
+            if self.DEBUG:
+                print("Spotify: %s"%siteurl)
             spotbot.makehttprequest(siteurl)
             spotbot.gethttpresponsecontent()
             episodeurls = spotbot.getallepisodes()
             episodeidlist = []
             episodeurlpattern = re.compile("https\:\/\/open\.spotify\.com\/episode\/([^\"]+)$")
+            episodeitemlist = []
             for epurl in episodeurls:
                 eps = re.search(episodeurlpattern, epurl)
                 if eps:
@@ -814,23 +844,33 @@ class BuzzBot(object):
             clientid, accesstoken = "", ""
             clientidpattern = re.compile("\"clientId\"\:\"([^\"]+)\"", re.DOTALL)
             accesstokenpattern = re.compile("\"accessToken\"\:\"([^\"]+)\",", re.DOTALL)
+            correlationidpattern = re.compile("\"correlationId\"\:\"([^\"]+)\",")
             cps = re.search(clientidpattern, spotbot.httpcontent)
             aps = re.search(accesstokenpattern, spotbot.httpcontent)
+            cdps = re.search(correlationidpattern, spotbot.httpcontent)
             if cps:
                 clientid = cps.groups()[0]
             if aps:
                 accesstoken = aps.groups()[0]
+            if cdps:
+                correlationid = cdps.groups()[0]
             episodemp3list = spotbot.getepisodeinfo(episodeids, accesstoken)
+            print(episodemp3list)
             httpheaders = {}
             # Get the episodes...
-            for epurl in episodemp3list:
-                content = spotbot.getepisode(epurl)
-                print(epurl)
+            ctr = 0
+            while ctr < targetcount:
                 if self.DEBUG:
-                    t = str(int(time.time() * 1000))
-                    fs = open("dumps/spotify_%s.mp3"%t, "wb")
-                    fs.write(content)
-                    fs.close()
+                    print("SPOTIFY ITERATION #%s ======================="%ctr)
+                for epurl in episodemp3list:
+                    content = spotbot.getepisode(epurl)
+                    print(epurl)
+                    if self.DEBUG:
+                        t = str(int(time.time() * 1000))
+                        fs = open("dumps/spotify_%s.mp3"%t, "wb")
+                        fs.write(content)
+                        fs.close()
+                ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = spotbot.existsincontent(titleregex)
             if "spotify" in self.hitstatus.keys():
@@ -912,6 +952,7 @@ class BuzzBot(object):
             except:
                 print("Error in extracting episode links: %s"%sys.exc_info()[1].__str__())
             ectr = 0
+            mediaurlslist = []
             for eurl in episodeurls:
                 response = ambot.makehttprequest(eurl)
                 #print(response.content)
@@ -954,24 +995,31 @@ class BuzzBot(object):
                     if cps:
                         mediaurl = cps.groups()[0]
                         print(mediaurl)
-                        ambot.httpheaders['Referer'] = "https://music.amazon.com/"
-                        ambot.httpheaders['range'] = "bytes=0-"
-                        ambot.httpheaders['sec-fetch-dest'] = "audio"
-                        ambot.httpheaders['sec-fetch-mode'] = "no-cors"
-                        ambot.httpheaders['sec-fetch-site'] = "cross-site"
-                        ambot.httpheaders['Accept-Encoding'] = "identity;q=1, *;q=0"
-                        ambot.httpheaders['Accept'] = "*/*"
-                        response = ambot.makehttprequest(mediaurl)
-                        if self.DEBUG:
-                            t = str(int(time.time() * 1000))
-                            fa = open("dumps/amazon_%s.mp3"%t, "wb")
-                            fa.write(response.content)
-                            fa.close()
-                        else:
-                            pass
+                        mediaurlslist.append(mediaurl)
                 except:
                     print("Error in extracting media links: %s"%sys.exc_info()[1].__str__())
                 ectr += 1
+            ctr = 0
+            while ctr < targetcount:
+                if self.DEBUG:
+                    print("AMAZON ITERATION #%s ======================="%ctr)
+                for mediaurl in mediaurlslist:
+                    ambot.httpheaders['Referer'] = "https://music.amazon.com/"
+                    ambot.httpheaders['range'] = "bytes=0-"
+                    ambot.httpheaders['sec-fetch-dest'] = "audio"
+                    ambot.httpheaders['sec-fetch-mode'] = "no-cors"
+                    ambot.httpheaders['sec-fetch-site'] = "cross-site"
+                    ambot.httpheaders['Accept-Encoding'] = "identity;q=1, *;q=0"
+                    ambot.httpheaders['Accept'] = "*/*"
+                    response = ambot.makehttprequest(mediaurl)
+                    if self.DEBUG:
+                        t = str(int(time.time() * 1000))
+                        fa = open("dumps/amazon_%s.mp3"%t, "wb")
+                        fa.write(response.content)
+                        fa.close()
+                    else:
+                        pass
+                ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = ambot.existsincontent(titleregex)
             if "amazon" in self.hitstatus.keys():
@@ -1025,14 +1073,32 @@ class GUI(object):
         self.urllabeltext.set("Enter Target URL: ")
         self.targeturlentry = Entry(self.mainwin, width=40, borderwidth=1)
         self.targeturlentry.grid(row=5, column=1, columnspan=3)
+        self.targetcountamazonlbl = StringVar()
+        self.targetcountamazonlabel = Label(self.mainwin, textvariable=self.targetcountamazonlbl, width=25, justify=LEFT, relief=RAISED)
+        self.targetcountamazonlabel.grid(row=6, column=0, sticky=W)
+        self.targetcountamazonlbl.set("Amazon Hits: ")
+        self.targetamazonhits = Entry(self.mainwin, width=40, borderwidth=1)
+        self.targetamazonhits.grid(row=6, column=1, columnspan=3)
+        self.targetcountspotifylbl = StringVar()
+        self.targetcountspotifylabel = Label(self.mainwin, textvariable=self.targetcountspotifylbl, width=25, justify=LEFT, relief=RAISED)
+        self.targetcountspotifylabel.grid(row=7, column=0, sticky=W)
+        self.targetcountspotifylbl.set("Spotify Hits: ")
+        self.targetspotifyhits = Entry(self.mainwin, width=40, borderwidth=1)
+        self.targetspotifyhits.grid(row=7, column=1, columnspan=3)
+        self.targetcountapplelbl = StringVar()
+        self.targetcountapplelabel = Label(self.mainwin, textvariable=self.targetcountapplelbl, width=25, justify=LEFT, relief=RAISED)
+        self.targetcountapplelabel.grid(row=8, column=0, sticky=W)
+        self.targetcountapplelbl.set("Apple Hits: ")
+        self.targetapplehits = Entry(self.mainwin, width=40, borderwidth=1)
+        self.targetapplehits.grid(row=8, column=1, columnspan=3)
         self.runbutton = Button(self.mainwin, text="Start Bot", command=self.startbot)
-        self.runbutton.grid(row=6, column=0)
+        self.runbutton.grid(row=9, column=0)
         self.stopbutton = Button(self.mainwin, text="Stop Bot", command=self.stopbot)
-        self.stopbutton.grid(row=6, column=1)
+        self.stopbutton.grid(row=9, column=1)
         self.closebutton = Button(self.mainwin, text="Close Window", command=self.closebot)
-        self.closebutton.grid(row=6, column=2)
+        self.closebutton.grid(row=9, column=2)
         self.messagelabel = Message(self.mainwin, textvariable=self.msglabeltext, bg="white", width=400, relief=SUNKEN)
-        self.messagelabel.grid(row=7, columnspan=3)
+        self.messagelabel.grid(row=10, columnspan=3)
         
         self.buzz = None
         self.threadslist = []
@@ -1089,8 +1155,11 @@ class GUI(object):
             if not re.search(self.httpspattern, line):
                 continue
             self.proxieslist.append(line)
+        amazontargethitscount = self.targetamazonhits.get()
+        spotifytargethitscount = self.targetspotifyhits.get()
+        appletargethitscount = self.targetapplehits.get()
         # Start bot in a background thread...
-        self.rt = Thread(target=self.runbot, args=(self.targeturl,))
+        self.rt = Thread(target=self.runbot, args=(self.targeturl, amazontargethitscount, spotifytargethitscount, appletargethitscount))
         self.rt.daemon = True
         self.rt.start()
         self.messagelabel.configure(foreground="green", width=400)
@@ -1099,15 +1168,27 @@ class GUI(object):
         return True
 
 
-    def runbot(self, targeturl):
+    """
+    A target count of -1 means the bot should run indefinitely hitting all targets until it is stopped
+    (possibly by killing the process).
+    """
+    def runbot(self, targeturl, amazonsettarget=-1, spotifysettarget=-1, applesettarget=-1):
         self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret, self.proxieslist)
+        self.buzz.settargetcounts(amazonsettarget, spotifysettarget, applesettarget)
         self.buzz.makerequest()
         self.buzz.gethttpresponsecontent()
         urlsdict = self.buzz.getpodcasturls()
         self.threadslist = []
         for sitename in urlsdict.keys():
             siteurl = urlsdict[sitename]
-            t = Thread(target=self.buzz.hitpodcast, args=(siteurl, sitename,))
+            targetcount = -1
+            if sitename.lower() == "apple":
+                targetcount = self.buzz.applesettarget
+            if sitename.lower() == "amazon":
+                targetcount = self.buzz.amazonsettarget
+            if sitename.lower() == "spotify":
+                targetcount = self.buzz.spotifysettarget
+            t = Thread(target=self.buzz.hitpodcast, args=(siteurl, sitename, targetcount))
             t.daemon = True
             t.start()
             self.threadslist.append(t)
