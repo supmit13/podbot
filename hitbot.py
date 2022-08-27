@@ -8,6 +8,7 @@ from threading import Thread
 
 import urllib, requests
 from urllib.parse import urlencode, quote_plus, urlparse
+from requests_html import HTMLSession
 
 import simplejson as json
 from bs4 import BeautifulSoup
@@ -92,17 +93,26 @@ class AmazonBot(object):
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
         except:
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
-        self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Keep-Alive' : '115', 'Connection' : 'keep-alive', }
-        self.httpheaders['cache-control'] = "max-age=0"
+        self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Pragma' : 'no-cache', 'Cache-Control' : 'no-cache', }
         self.httpheaders['upgrade-insecure-requests'] = "1"
         self.httpheaders['sec-fetch-dest'] = "document"
         self.httpheaders['sec-fetch-mode'] = "navigate"
-        self.httpheaders['sec-fetch-site'] = "same-origin"
+        self.httpheaders['sec-fetch-site'] = "none"
         self.httpheaders['sec-fetch-user'] = "?1"
         self.httpheaders['sec-ch-ua-mobile'] = "?0"
         self.httpheaders['sec-ch-ua'] = "\".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\""
         self.httpheaders['sec-ch-ua-platform'] = "Linux"
-        self.httpcookies = None
+        self.httpcookies = ""
+        self.httpheaders['cookie'] = ""
+        self.requesturl = "https://music.amazon.com/"
+        self.httprequest = urllib.request.Request(self.requesturl, headers=self.httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            print("Error making request to %s: %s"%(self.requesturl, sys.exc_info()[1].__str__()))
+            return None
+        self.httpcookies = BuzzBot._getCookieFromResponse(self.httpresponse)
+        self.httpheaders['cookie'] = self.httpcookies
         
 
 
@@ -118,25 +128,13 @@ class AmazonBot(object):
 
     def makehttprequest(self, requrl):
         self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
-        try:
-            self.httpresponse = self.httpopener.open(self.httprequest)
-        except:
-            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
-            return None
-        self.httpcookies = BuzzBot._getCookieFromResponse(self.httpresponse)
-        #print(self.httpresponse.headers)
-        self.httpheaders['cookie'] = self.httpcookies
+        session = HTMLSession()
+        self.httpresponse = session.get(requrl)
         return self.httpresponse
 
 
     def gethttpresponsecontent(self):
-        try:
-            encodedcontent = self.httpresponse.read()
-            self.httpcontent = _decodeGzippedContent(encodedcontent)
-        except:
-            print("Error reading content: %s"%sys.exc_info()[1].__str__())
-            self.httpcontent = None
-            return None
+        self.httpcontent = self.httpresponse.html.html
         return str(self.httpcontent)
 
 
@@ -302,19 +300,28 @@ class AmazonBot(object):
         return False
 
 
-    def getvisualdict(self, paramstuple):
+    def getvisualdict(self, paramstuple, episodeid="", mediaflag=0):
         urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl = paramstuple[0], paramstuple[1], paramstuple[2], paramstuple[3], paramstuple[4], paramstuple[5], paramstuple[6], paramstuple[7], paramstuple[8]
         siteurlparts = siteurl.split("/")
-        siteurl = "/".join(siteurlparts[2:])
+        siteurl = "/" + "/".join(siteurlparts[3:])
         ts = int(time.time() * 1000)
         httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'content-encoding' : 'amz-1.0', 'content-type' : 'application/json; charset=UTF-8', 'origin' : 'https://music.amazon.com', 'pragma' : 'no-cache', 'referer' : siteurl, 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'same-origin', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amz-target' : 'com.amazon.dmpbrowsevisualservice.skills.DMPBrowseVisualService.ShowPodcastWebSkill', 'x-amzn-requestid' : ''}
         httpheaders['cookie'] = ""
         httpheaders['cookie'] += self.httpheaders['cookie']
-        print(httpheaders['cookie'])
-        datadict = {"preset":"{\"id\":\"%s\",\"nextToken\":null}"%urlid,"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"2e9db538-680f-44e4-a2bf-bb0d8690132e","sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"},"hidePromptPreference":{"preferenceMap":{},"__type":"Podcast.FollowPromptInterface.v1_0#HidePromptPreferenceClientState"}},"extra":{}}
+        if mediaflag == 0:
+            datadict = {"preset":"{\"id\":\"%s\",\"nextToken\":null}"%urlid,"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"","sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"},"hidePromptPreference":{"preferenceMap":{},"__type":"Podcast.FollowPromptInterface.v1_0#HidePromptPreferenceClientState"}},"extra":{}}
+        else:
+            httpheaders['x-amz-target'] = "com.amazon.dmpplaybackvisualservice.skills.DMPPlaybackVisualService.PlayPodcastWebSkill"
+            datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"","sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}},"extra":{}}
         postdata = json.dumps(datadict).encode('utf-8')
+        #print(postdata)
         httpheaders['content-length'] = postdata.__len__()
-        self.httprequest = urllib.request.Request("https://music.amazon.com/EU/api/podcast/browse/visual", data=postdata, headers=httpheaders)
+        requrl = "https://music.amazon.com/EU/api/podcast/browse/visual"
+        if mediaflag == 0:
+            self.httprequest = urllib.request.Request(requrl, data=postdata, headers=httpheaders)
+        else:
+            requrl = "https://music.amazon.com/EU/api/podcast/playback/visual"
+            self.httprequest = urllib.request.Request(requrl, data=postdata, headers=httpheaders)
         try:
             self.httpresponse = self.httpopener.open(self.httprequest)
         except:
@@ -379,9 +386,11 @@ class SpotifyBot(object):
         hh = d.strftime("%H")
         mm = d.strftime("%M")
         ss = d.strftime("%S")
-        sp_dc="sp_dc=AQAJlPHtM1FpS3VcivEeBLIeIhPvp1oc34uyEitFyyAaSyvXs8MjoEQwArCRtPO9yMkJwr4x9PMsTXj9RGO9VeLnMTX-Z24HrI_bkT6P76p09HTEwS1OqLTHd_ghJpZNKmrwlEiZMoVs8XvU8__qb_RbGwRbrcg5; " # This value is necessary in cookies for valid requests... Needs to be investigated later for finding out how to create it.
-        self.httpheaders['cookie'] = "sss=1; sp_m=in-en; _cs_c=0; " + sp_dc + "sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1661184464317%3B1661190235932%3B5%3B21; OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
-        #print(self.httpheaders['cookie'])
+        #sp_dc="sp_dc=AQAJlPHtM1FpS3VcivEeBLIeIhPvp1oc34uyEitFyyAaSyvXs8MjoEQwArCRtPO9yMkJwr4x9PMsTXj9RGO9VeLnMTX-Z24HrI_bkT6P76p09HTEwS1OqLTHd_ghJpZNKmrwlEiZMoVs8XvU8__qb_RbGwRbrcg5; " # This value is necessary in cookies for valid requests... Needs to be investigated later for finding out how to create it.
+        sp_dc = ""
+        self.httpheaders['cookie'] = "sss=1; sp_m=in-en; _cs_c=0; " + sp_dc + "sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1661533841086%3B1661533922750%3B7%3B29; OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
+        if self.DEBUG:
+            print("Cookie Sent: %s"%self.httpheaders['cookie'])
         
 
 
@@ -470,7 +479,9 @@ class SpotifyBot(object):
 
     def getepisodeinfo(self, episodeids, accesstoken):
         clienttoken = self.getclienttoken()
-        #print(accesstoken)
+        if self.DEBUG:
+            print("Access Token: %s"%accesstoken)
+            print("Client Token: %s"%clienttoken)
         episodeinfourl = "https://api.spotify.com/v1/episodes?ids=%s&market=from_token"%episodeids
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken}
         epinforequest = urllib.request.Request(episodeinfourl, headers=httpheaders)
@@ -478,7 +489,7 @@ class SpotifyBot(object):
             self.httpresponse = self.httpopener.open(epinforequest)
         except:
             print("Error making episode info request to %s: %s"%(episodeinfourl, sys.exc_info()[1].__str__()))
-            return None
+            return []
         self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
         try:
             episodeinfodict = json.loads(self.httpcontent)
@@ -496,7 +507,7 @@ class SpotifyBot(object):
     def getclienttoken(self):
         requesturl = "https://clienttoken.spotify.com/v1/clienttoken"
         cid = "d8a5ed958d274c2e8ee717e6a4b0971d" # This ought to be self.clientid
-        data = {"client_data":{"client_version":"1.1.93.595.g4dc93539","client_id":"%s"%cid,"js_sdk_data":{"device_brand":"unknown","device_model":"desktop","os":"Linux","os_version":"unknown"}}}
+        data = {"client_data":{"client_version":"1.1.94.50.g7884d765","client_id":"%s"%cid,"js_sdk_data":{"device_brand":"unknown","device_model":"desktop","os":"Linux","os_version":"unknown"}}}
         databytes = json.dumps(data).encode('utf-8')
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Content-Type' : 'application/json', 'Origin' : 'https://open.spotify.com'}
         httpheaders['Content-Length'] = databytes.__len__()
@@ -815,10 +826,11 @@ class BuzzBot(object):
             for epurl in episodemp3list:
                 content = spotbot.getepisode(epurl)
                 print(epurl)
-                t = str(int(time.time() * 1000))
-                fs = open("dumps/spotify_%s.mp3"%t, "wb")
-                fs.write(content)
-                fs.close()
+                if self.DEBUG:
+                    t = str(int(time.time() * 1000))
+                    fs = open("dumps/spotify_%s.mp3"%t, "wb")
+                    fs.write(content)
+                    fs.close()
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = spotbot.existsincontent(titleregex)
             if "spotify" in self.hitstatus.keys():
@@ -828,7 +840,8 @@ class BuzzBot(object):
                 self.hitstatus['spotify'].append(boolret)
         elif sitename.lower() == "amazon":
             ambot = AmazonBot(apikey) # Get this from the environment
-            print("Amazon: %s"%siteurl)
+            if self.DEBUG:
+                print("Amazon: %s"%siteurl)
             idpattern = re.compile("https\:\/\/music\.amazon\.com\/podcasts\/(.*)$")
             idps = re.search(idpattern, siteurl)
             urlid = ""
@@ -876,8 +889,89 @@ class BuzzBot(object):
             if crs:
                 csrfrnd = crs.groups()[0]
             paramstuple = (urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl)
-            datadict = ambot.getvisualdict(paramstuple)
-            print(datadict)
+            datadict = ambot.getvisualdict(paramstuple, "", 0)
+            #print(datadict)
+            episodeurls = []
+            uniqueepisodes = {}
+            episodeids = []
+            episodepattern = re.compile("\/episodes\/([^\/]+)\/", re.DOTALL)
+            try:
+                content = datadict['methods'][0]['content']
+                deeplinkpattern = re.compile("\"deeplink\"\:\"(\/podcasts\/[^\"]+)\",", re.DOTALL)
+                matches = re.findall(deeplinkpattern, content)
+                for m in matches:
+                    if "episodes" not in m:
+                        continue
+                    epurl = "https://music.amazon.com" + m
+                    if epurl not in uniqueepisodes.keys():
+                        episodeurls.append(epurl)
+                        uniqueepisodes[epurl] = 1
+                        eps = re.search(episodepattern, epurl)
+                        if eps:
+                            episodeids.append(eps.groups()[0])
+            except:
+                print("Error in extracting episode links: %s"%sys.exc_info()[1].__str__())
+            ectr = 0
+            for eurl in episodeurls:
+                response = ambot.makehttprequest(eurl)
+                #print(response.content)
+                devtype, devid, favicon, mktplace, sessid, ipaddr, csrftoken, csrfts, csrfrnd = "", "", "", "", "", "", "", "", ""
+                dts = re.search(devicetypepattern, str(response.content))
+                dis = re.search(deviceidpattern, str(response.content))
+                fis = re.search(faviconpattern, str(response.content))
+                mks = re.search(marketplacepattern, str(response.content))
+                sss = re.search(sessionidpattern, str(response.content))
+                ips = re.search(ipaddresspattern, str(response.content))
+                cts = re.search(csrftokenpattern, str(response.content))
+                css = re.search(csrftspattern, str(response.content))
+                crs = re.search(csrfrndpattern, str(response.content))
+                if dts:
+                    devtype = dts.groups()[0]
+                if dis:
+                    devid = dis.groups()[0]
+                if fis:
+                    favicon = fis.groups()[0]
+                if mks:
+                    mktplace = mks.groups()[0]
+                if sss:
+                    sessid = sss.groups()[0]
+                if ips:
+                    ipaddr = ips.groups()[0]
+                if cts:
+                    csrftoken = cts.groups()[0]
+                if css:
+                    csrfts = css.groups()[0]
+                if crs:
+                    csrfrnd = crs.groups()[0]
+                params = (urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, eurl)
+                mediaidpattern = re.compile("\"mediaId\"\:\"(https:\/\/[^\"]+)\",", re.DOTALL)
+                mflag = 1
+                mediadict = ambot.getvisualdict(params, episodeids[ectr], mflag)
+                try:
+                    content = str(mediadict['methods'][0]['content'])
+                    #print(content)
+                    cps = re.search(mediaidpattern, content)
+                    if cps:
+                        mediaurl = cps.groups()[0]
+                        print(mediaurl)
+                        ambot.httpheaders['Referer'] = "https://music.amazon.com/"
+                        ambot.httpheaders['range'] = "bytes=0-"
+                        ambot.httpheaders['sec-fetch-dest'] = "audio"
+                        ambot.httpheaders['sec-fetch-mode'] = "no-cors"
+                        ambot.httpheaders['sec-fetch-site'] = "cross-site"
+                        ambot.httpheaders['Accept-Encoding'] = "identity;q=1, *;q=0"
+                        ambot.httpheaders['Accept'] = "*/*"
+                        response = ambot.makehttprequest(mediaurl)
+                        if self.DEBUG:
+                            t = str(int(time.time() * 1000))
+                            fa = open("dumps/amazon_%s.mp3"%t, "wb")
+                            fa.write(response.content)
+                            fa.close()
+                        else:
+                            pass
+                except:
+                    print("Error in extracting media links: %s"%sys.exc_info()[1].__str__())
+                ectr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = ambot.existsincontent(titleregex)
             if "amazon" in self.hitstatus.keys():
