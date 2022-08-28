@@ -660,6 +660,7 @@ class BuzzBot(object):
         self.DEBUG = False
         self.humanize = True
         self.logging = True
+        self.cleanupmedia = True
         self.proxies = {'https' : proxieslist,}
         self.amazonkey = amazonkey
         self.spotifyclientid = spotifyclientid
@@ -1119,8 +1120,19 @@ class BuzzBot(object):
             if self.logging:
                 self.logger.write("Done hitting podcasts for %s\n"%sitename)
         else:
-            return False
+            boolret = False
+        if self.cleanupmedia:
+            self.cleanupdownloadedmedia()
         return boolret
+
+    """
+    Method to clean up downloaded media
+    """
+    def cleanupdownloadedmedia(self):
+        try:
+            shutil.rmtree(self.dumpdir)
+        except OSError as e:
+            print ("Error: %s - %s." % (e.filename, e.strerror))
 
 
 """
@@ -1232,6 +1244,10 @@ class GUI(object):
         self.logchkbtn = Checkbutton(self.mainwin, text = "Logging", variable = self.logging, onvalue = 1, offvalue = 0, height=2, width = 10)
         self.logchkbtn.grid(row=9, column=2)
         self.logchkbtn.select() # By default, we log the operation
+        self.cleanupmedia = IntVar()
+        self.cleanupmediachkbtn = Checkbutton(self.mainwin, text = "Clean up", variable = self.cleanupmedia, onvalue = 1, offvalue = 0, height=2, width = 10)
+        self.cleanupmediachkbtn.grid(row=9, column=3)
+        self.cleanupmediachkbtn.select()
         self.runbutton = Button(self.mainwin, text="Start Bot", command=self.startbot)
         self.runbutton.grid(row=10, column=0)
         self.stopbutton = Button(self.mainwin, text="Stop Bot", command=self.stopbot)
@@ -1316,6 +1332,7 @@ class GUI(object):
         self.DEBUG = self.DEBUG.get()
         self.humanize = self.humanize.get()
         self.logging = self.logging.get()
+        self.cleanupmedia = self.cleanupmedia.get()
         if self.DEBUG:
             print("%s ___ %s ____ %s"%(self.DEBUG, self.humanize, self.logging))
         # Start bot in a background thread...
@@ -1337,6 +1354,7 @@ class GUI(object):
         self.buzz.DEBUG = self.DEBUG
         self.buzz.humanize = self.humanize
         self.buzz.logging = self.logging
+        self.buzz.cleanupmedia = self.cleanupmedia
         self.buzz.settargetcounts(amazonsettarget, spotifysettarget, applesettarget)
         self.buzz.makerequest()
         self.buzz.gethttpresponsecontent()
@@ -1370,7 +1388,8 @@ class GUI(object):
     def closebot(self):
         if self.rt is not None:
             self.rt.join()
-        self.buzz.logger.close()
+        if self.buzz is not None and self.buzz.logger is not None:
+            self.buzz.logger.close()
         sys.exit()
 
 
@@ -1378,6 +1397,7 @@ class GUI(object):
         if self.rt is not None:
             self.rt.join()
         return None
+
 
 
 # Entry point...
