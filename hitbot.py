@@ -455,7 +455,7 @@ class SpotifyBot(object):
         return False
 
 
-    def getepisodemp3(self, episodeid, accesstoken, clienttoken):
+    def getepisodemp3url(self, episodeid, accesstoken, clienttoken):
         episodeurl = "https://spclient.wg.spotify.com/soundfinder/v1/unauth/episode/%s/com.widevine.alpha?market=IN"%episodeid
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken, 'app-platform' : 'WebPlayer'}
         epinforequest = urllib.request.Request(episodeurl, headers=httpheaders)
@@ -898,7 +898,7 @@ class BuzzBot(object):
                 self.logger.write("Spotify access token: %s, client token: %s\n"%(accesstoken, clienttoken))
             spotmp3list = []
             for eid in episodeidlist:
-                epmp3url = spotbot.getepisodemp3(eid, accesstoken, clienttoken)
+                epmp3url = spotbot.getepisodemp3url(eid, accesstoken, clienttoken)
                 if self.DEBUG:
                     print("Spotify mp3 URL: %s"%epmp3url)
                 if self.logging:
