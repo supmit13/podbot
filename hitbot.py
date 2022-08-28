@@ -386,9 +386,7 @@ class SpotifyBot(object):
         hh = d.strftime("%H")
         mm = d.strftime("%M")
         ss = d.strftime("%S")
-        #sp_dc="sp_dc=AQAJlPHtM1FpS3VcivEeBLIeIhPvp1oc34uyEitFyyAaSyvXs8MjoEQwArCRtPO9yMkJwr4x9PMsTXj9RGO9VeLnMTX-Z24HrI_bkT6P76p09HTEwS1OqLTHd_ghJpZNKmrwlEiZMoVs8XvU8__qb_RbGwRbrcg5; " # This value is necessary in cookies for valid requests... Needs to be investigated later for finding out how to create it.
-        sp_dc = ""
-        self.httpheaders['cookie'] = "sss=1; sp_m=in-en; _cs_c=0; " + sp_dc + "sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1661618190878%3B1661621393364%3B8%3B35; OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
+        self.httpheaders['cookie'] = "sss=1; sp_m=in-en; _cs_c=0; sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1661618190878%3B1661621393364%3B8%3B35; OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
         if self.DEBUG:
             print("Cookie Sent: %s"%self.httpheaders['cookie'])
         
@@ -464,6 +462,25 @@ class SpotifyBot(object):
         return False
 
 
+    def getepisodemp3(self, episodeid, accesstoken, clienttoken):
+        episodeurl = "https://spclient.wg.spotify.com/soundfinder/v1/unauth/episode/%s/com.widevine.alpha?market=IN"%episodeid
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken, 'app-platform' : 'WebPlayer'}
+        epinforequest = urllib.request.Request(episodeurl, headers=httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(epinforequest)
+        except:
+            print("Error making episode info request to %s: %s"%(episodeinfourl, sys.exc_info()[1].__str__()))
+            return []
+        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        mp3url = ""
+        try:
+            contentdict = json.loads(self.httpcontent)
+            mp3url = contentdict['passthroughUrl']
+        except:
+            print("Error in getting mp3 URL: %s"%sys.exc_info()[1].__str__())
+        return mp3url
+
+
     def getallepisodes(self):
         episodeurlpattern = re.compile("(https\:\/\/open\.spotify\.com\/episode\/[^\"]+)\"", re.DOTALL)
         allepisodeurls = re.findall(episodeurlpattern, str(self.httpcontent))
@@ -476,32 +493,6 @@ class SpotifyBot(object):
         devices = spotobj.devices()
         spotobj.start_playback(uris=['spotify:track:%s'%uid])
 
-
-    def getepisodeinfo(self, episodeids, accesstoken):
-        clienttoken = self.getclienttoken()
-        if self.DEBUG:
-            print("Access Token: %s"%accesstoken)
-            print("Client Token: %s"%clienttoken)
-        episodeinfourl = "https://api.spotify.com/v1/episodes?ids=%s&market=from_token"%episodeids
-        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken}
-        epinforequest = urllib.request.Request(episodeinfourl, headers=httpheaders)
-        try:
-            self.httpresponse = self.httpopener.open(epinforequest)
-        except:
-            print("Error making episode info request to %s: %s"%(episodeinfourl, sys.exc_info()[1].__str__()))
-            return []
-        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
-        try:
-            episodeinfodict = json.loads(self.httpcontent)
-        except:
-            print("Error getting episodes info: %s"%sys.exc_info()[1].__str__())
-            return []
-        episodemp3list = []
-        episodes = episodeinfodict['episodes']
-        for ep in episodes:
-            playbackurl = ep['external_playback_url']
-            episodemp3list.append(playbackurl)
-        return episodemp3list
 
 
     def getclienttoken(self):
@@ -854,15 +845,17 @@ class BuzzBot(object):
                 accesstoken = aps.groups()[0]
             if cdps:
                 correlationid = cdps.groups()[0]
-            episodemp3list = spotbot.getepisodeinfo(episodeids, accesstoken)
-            print(episodemp3list)
-            httpheaders = {}
-            # Get the episodes...
-            ctr = 0
+            clienttoken = spotbot.getclienttoken()
+            spotmp3list = []
+            for eid in episodeidlist:
+                epmp3url = spotbot.getepisodemp3(eid, accesstoken, clienttoken)
+                if self.DEBUG:
+                    print("Spotify mp3 URL: %s"%epmp3url)
+                spotmp3list.append(epmp3url)
             while ctr < targetcount:
                 if self.DEBUG:
                     print("SPOTIFY ITERATION #%s ======================="%ctr)
-                for epurl in episodemp3list:
+                for epurl in spotmp3list:
                     content = spotbot.getepisode(epurl)
                     print(epurl)
                     if self.DEBUG:
@@ -1100,14 +1093,25 @@ class GUI(object):
         self.defaultapplehits.set(-1)
         self.targetapplehits = ttk.Combobox(self.mainwin, textvariable=self.defaultapplehits, values=[i for i in range(-1,1000)])
         self.targetapplehits.grid(row=8, column=1, columnspan=3)
+        self.DEBUG = False # By default, we don't we don't want to see debug output
+        self.debugchkbtn = Checkbutton(self.mainwin, text = "Debug", variable = self.DEBUG, onvalue = True, offvalue = False, height=2, width = 10)
+        self.debugchkbtn.grid(row=9, column=0)
+        self.humanize = True
+        self.humanizechkbtn = Checkbutton(self.mainwin, text = "Humanize", variable = self.humanize, onvalue = True, offvalue = False, height=2, width = 10)
+        self.humanizechkbtn.grid(row=9, column=1)
+        self.humanizechkbtn.select() # By default, we will humanize
+        self.logging = True
+        self.logchkbtn = Checkbutton(self.mainwin, text = "Logging", variable = self.logging, onvalue = True, offvalue = False, height=2, width = 10)
+        self.logchkbtn.grid(row=9, column=2)
+        self.logchkbtn.select() # By default, we log the operation
         self.runbutton = Button(self.mainwin, text="Start Bot", command=self.startbot)
-        self.runbutton.grid(row=9, column=0)
+        self.runbutton.grid(row=10, column=0)
         self.stopbutton = Button(self.mainwin, text="Stop Bot", command=self.stopbot)
-        self.stopbutton.grid(row=9, column=1)
+        self.stopbutton.grid(row=10, column=1)
         self.closebutton = Button(self.mainwin, text="Close Window", command=self.closebot)
-        self.closebutton.grid(row=9, column=2)
+        self.closebutton.grid(row=10, column=2)
         self.messagelabel = Message(self.mainwin, textvariable=self.msglabeltext, bg="white", width=400, relief=SUNKEN)
-        self.messagelabel.grid(row=10, columnspan=3)
+        self.messagelabel.grid(row=11, columnspan=3)
         
         self.buzz = None
         self.threadslist = []
@@ -1225,64 +1229,9 @@ class GUI(object):
         return None
 
 
+# Entry point...
 if __name__ == "__main__":
     gui = GUI()
-
-    """
-    # Amazon
-    amazonapikey = "c3f9d26365604d04affad02432e9be68"
-    spotifyid = sys.argv[2]
-    spotifysecret = sys.argv[3]
-    amazon = AmazonBot(amazonapikey)
-    amazon.searchforpodcasts(searchkey)
-    amazon.parsecontent(reqtype='search')
-    print(amazon.results[1]['podcastid'])
-    amazon.fetchpodcastbyId(amazon.results[1]['podcastid'])
-    amazon.parsecontent(reqtype='podcast')
-    print("First episode Id: %s"%amazon.results[0]['id'])
-    amazon.fetchpodcastepisodebyId(amazon.results[0]['id'])
-    amazon.parsecontent(reqtype='episode')
-    print("First episode link: %s"%amazon.results[0]['link'])
-    print("First episode URL: %s"%amazon.results[0]['urls'][0])
-    print("First episode listennotes: %s"%amazon.results[0]['listennotes'])
-    listennotesurl = str(amazon.results[0]['listennotes'])
-    title = str(amazon.results[0]['title'])
-    amazon.makehttprequest(listennotesurl)
-    podcastcontent = amazon.gethttpresponsecontent()
-    titleregex = makeregex(title)
-    if re.search(titleregex, podcastcontent):
-        print("Amazon: Hit the page successfully")
-    else:
-        print("Probably did not get the page correctly")
-    #fp = open("dumpamazonpodcast.html", "w")
-    #fp.write(podcastcontent)
-    #fp.close()
-    # Spotify
-    spotifybot = SpotifyBot(spotifyid, spotifysecret)
-    spotifybot.searchforpodcasts(searchkey)
-    #print("First Album URL: %s"%spotifybot.results[0]['albumspotifyurl'])
-    #print("First Item URL: %s"%spotifybot.results[0]['itemspotifyurl'])
-    #print("First Album ID: %s"%spotifybot.results[0]['albumid'])
-    #print("First Item ID: %s"%spotifybot.results[0]['itemid'])
-    spotifybot.makehttprequest(spotifybot.results[0]['itemspotifyurl'])
-    itemcontent = spotifybot.gethttpresponsecontent()
-    searchkeyregex = makeregex(searchkey)
-    found = 0
-    for spotres in spotifybot.results:
-        spotifybot.makehttprequest(spotres['itemspotifyurl'])
-        itemcontent = spotifybot.gethttpresponsecontent()
-        if re.search(searchkeyregex, itemcontent):
-            print("Found podcast on spotify")
-            found = 1
-            print(spotres['albumspotifyurl'])
-            print(spotres['itemspotifyurl'])
-            break
-    if not found:
-        print("Could not find the podcast on spotify")
-    #fp = open("dumpspotifyitem.html", "w")
-    #fp.write(itemcontent)
-    #fp.close()
-    """
 
 
 """
