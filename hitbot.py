@@ -76,10 +76,12 @@ class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 class AmazonBot(object):
     
-    def __init__(self, apikey):
-        self.DEBUG = 1
+    def __init__(self, apikey, proxies):
+        self.DEBUG = False
+        self.humanize = True
+        self.logging = True
         self.apikey = apikey
-        self.proxies = {'http' : [], 'https' : []}
+        self.proxies = proxies
         self.response = None # This would a response object from Amazon API
         self.content = None # This could be a text chunk or a binary data (like a Podcast content)
         self.podclient = podcast_api.Client(api_key=self.apikey)
@@ -89,7 +91,7 @@ class AmazonBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
-            self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][0], 'https': self.proxies['https'][0]})
+            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
         except:
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
@@ -113,17 +115,6 @@ class AmazonBot(object):
             return None
         self.httpcookies = BuzzBot._getCookieFromResponse(self.httpresponse)
         self.httpheaders['cookie'] = self.httpcookies
-        
-
-
-    def buildopenerrandomproxy(self):
-        httpproxycount = self.proxies['http'].__len__() - 1
-        httpsproxycount = self.proxies['https'].__len__() - 1
-        httprandomctr = random.randint(0, httpproxycount)
-        httpsrandomctr = random.randint(0, httpsproxycount)
-        self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][httprandomctr], 'https': self.proxies['https'][httpsrandomctr]})
-        self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
-        return self.httpopener
 
 
     def makehttprequest(self, requrl):
@@ -339,13 +330,15 @@ class AmazonBot(object):
 
 class SpotifyBot(object):
     
-    def __init__(self, client_id, client_secret):
-        self.DEBUG = 1
+    def __init__(self, client_id, client_secret, proxies):
+        self.DEBUG = False
+        self.humanize = True
+        self.logging = True
         self.clientid = client_id
         self.clientsecret = client_secret
         self.redirecturi = "https://localhost:8000/"
         self.spotclient = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=client_id, client_secret=client_secret))
-        self.proxies = {'http' : [], 'https' : []}
+        self.proxies = proxies
         self.response = None # This would a response object from Amazon API
         self.content = None # This could be a text chunk or a binary data (like a Podcast content)
         self.results = []
@@ -354,7 +347,7 @@ class SpotifyBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
-            self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][0], 'https': self.proxies['https'][0]})
+            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
         except:
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
@@ -527,9 +520,11 @@ class SpotifyBot(object):
 
 class AppleBot(object):
 
-    def __init__(self):
-        self.DEBUG = 1
-        self.proxies = {'http' : [], 'https' : []}
+    def __init__(self, proxies):
+        self.DEBUG = False
+        self.humanize = True
+        self.logging = True
+        self.proxies = proxies
         self.response = None # This would a response object from Amazon API
         self.content = None # This could be a text chunk or a binary data (like a Podcast content)
         self.results = []
@@ -538,7 +533,7 @@ class AppleBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
-            self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][0], 'https': self.proxies['https'][0]})
+            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler, NoRedirectHandler())
         except:
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), NoRedirectHandler())
@@ -600,7 +595,7 @@ class AppleBot(object):
         return podcastlinks
 
 
-    def downloadpodcast(self, podcastpagelink):
+    def downloadpodcast(self, podcastpagelink, dumpdir):
         self.makehttprequest(podcastpagelink)
         content = self.gethttpresponsecontent()
         content = content.replace("\\", "")
@@ -645,7 +640,7 @@ class AppleBot(object):
             mediacontent = b""
         if self.DEBUG:
             t = str(int(time.time() * 1000))
-            dumpfile = "dumps/apple_" + t + ".mp3"
+            dumpfile = dumpdir + os.path.sep + "apple_" + t + ".mp3"
             fp = open(dumpfile, "wb")
             fp.write(mediacontent)
             fp.close()
@@ -655,8 +650,10 @@ class AppleBot(object):
 class BuzzBot(object):
     
     def __init__(self, podlisturl, amazonkey, spotifyclientid, spotifyclientsecret, proxieslist=[]):
-        self.DEBUG = 1
-        self.proxies = {'http' : [], 'https' : proxieslist,}
+        self.DEBUG = False
+        self.humanize = True
+        self.logging = True
+        self.proxies = {'https' : proxieslist,}
         self.amazonkey = amazonkey
         self.spotifyclientid = spotifyclientid
         self.spotifyclientsecret = spotifyclientsecret
@@ -666,7 +663,7 @@ class BuzzBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
-            self.proxyhandler = urllib.request.ProxyHandler({'http' : self.proxies['http'][0], 'https': self.proxies['https'][0]})
+            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0]})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
         except:
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
@@ -687,6 +684,23 @@ class BuzzBot(object):
         self.amazonsettarget = -1
         self.spotifysettarget = -1
         self.applesettarget = -1
+        self.dumpdir = os.getcwd() + os.path.sep + "mediadumps"
+        if not os.path.isdir(self.dumpdir):
+            os.makedirs(self.dumpdir, 0o777)
+        self.logdir = os.getcwd() + os.path.sep + "logs"
+        self.logfile = self.logdir + os.path.sep + "hitbot.log"
+        self.logger = Logger(self.logfile)
+        self.logger.write("Starting run at: %s\n"%datetime.strftime(datetime.now(), "%d-%b-%Y %H:%M:%S"))
+
+
+    def buildopenerrandomproxy(self):
+        httpsproxycount = self.proxies['https'].__len__() - 1
+        httpsrandomctr = random.randint(0, httpsproxycount)
+        self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+        self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
+        if self.logging:
+            self.logger.write("Created opener using proxy %s\n"%self.proxies['https'][httpsrandomctr])
+        return self.httpopener
 
 
     def settargetcounts(self, amazonsettarget, spotifysettarget, applesettarget):
@@ -702,17 +716,25 @@ class BuzzBot(object):
             self.applesettarget = int(applesettarget)
         except:
             pass
+        if self.logging:
+            self.logger.write("Target counts - Amazon: %s, Apple: %s, Spotify: %s\n"%(self.amazonsettarget, self.applesettarget, self.spotifysettarget))
 
 
     def makerequest(self):
+        if self.logging:
+            self.logger.write("Making GET request to %s\n"%self.requesturl)
         self.httprequest = urllib.request.Request(self.requesturl, headers=self.httpheaders)
         try:
             self.httpresponse = self.httpopener.open(self.httprequest)
         except:
             print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            if self.logging:
+                self.logger.write("Error making request to %s: %s\n"%(requrl, sys.exc_info()[1].__str__()))
             return None
         self.httpcookies = self.__class__._getCookieFromResponse(self.httpresponse)
         self.httpheaders["cookie"] = self.httpcookies
+        if self.logging:
+            self.logger.write("Cookie received: %s\n"%self.httpheaders["cookie"])
         return self.httpresponse
 
 
@@ -751,6 +773,8 @@ class BuzzBot(object):
             self.httpcontent = _decodeGzippedContent(encodedcontent)
         except:
             print("Error reading content: %s"%sys.exc_info()[1].__str__())
+            if self.logging:
+                self.logger.write("Error reading content: %s\n"%sys.exc_info()[1].__str__())
             self.httpcontent = None
             return None
         return str(self.httpcontent)
@@ -763,6 +787,8 @@ class BuzzBot(object):
         self.results = {}
         if not soup:
             print("Error getting html content: %s"%sys.exc_info()[1].__str__())
+            if self.logging:
+                self.logger.write("Error getting html content: %s\n"%sys.exc_info()[1].__str__())
             return self.results
         h1tag = soup.find("h1")
         h1contents = h1tag.renderContents().decode('utf-8')
@@ -774,6 +800,8 @@ class BuzzBot(object):
             allanchors = sectiontag.find_all("a")
         else:
             print("Could not find the anchor tags for podcasts URLs")
+            if self.logging:
+                self.logger.write("Could not find the anchor tags for podcasts URLs\n")
             return self.results
         for anchor in allanchors:
             if anchor is not None and 'href' in str(anchor):
@@ -783,6 +811,8 @@ class BuzzBot(object):
                         self.results[podsite] = podcasturl
                     else:
                         pass
+        if self.logging:
+            self.logger.write("Podcast URLs: %s\n"%self.results.__str__())
         return self.results
 
 
@@ -794,10 +824,17 @@ class BuzzBot(object):
         ctr = 0
         if targetcount == -1:
             targetcount = 10000 # We set this to 10000, a suitably large number of hits
+        if self.logging:
+            self.logger.write("Starting podcast hits for '%s': Target count = %s\n"%(sitename, targetcount))
         if sitename.lower() == "apple":
             if self.DEBUG:
                 print(siteurl)
-            applebot = AppleBot()
+            if self.logging:
+                self.logger.write("Apple URL: %s\n"%siteurl)
+            applebot = AppleBot(self.proxies)
+            applebot.DEBUG = self.DEBUG
+            applebot.humanize = self.humanize
+            applebot.logging = self.logging
             applebot.makehttprequest(siteurl)
             applebot.gethttpresponsecontent()
             podcastlinks = applebot.listpodcastsonpage()
@@ -805,8 +842,12 @@ class BuzzBot(object):
             while ctr < targetcount :
                 if self.DEBUG:
                     print("APPLE ITERATION #%s ======================="%ctr)
+                if self.logging:
+                    self.logger.write("APPLE ITERATION #%s =======================\n"%ctr)
                 for pclink in podcastlinks:
-                    resp = applebot.downloadpodcast(pclink)
+                    if self.logging:
+                        self.logger.write("Getting Apple podcast mp3 from %s\n"%pclink)
+                    resp = applebot.downloadpodcast(pclink, self.dumpdir)
                 ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = applebot.existsincontent(titleregex)
@@ -816,9 +857,14 @@ class BuzzBot(object):
                 self.hitstatus['apple'] = []
                 self.hitstatus['apple'].append(boolret)
         elif sitename.lower() == "spotify":
-            spotbot = SpotifyBot(clientid, clientsecret) # Get this from the environment
+            spotbot = SpotifyBot(clientid, clientsecret, self.proxies) # Get this from the environment
             if self.DEBUG:
                 print("Spotify: %s"%siteurl)
+            if self.logging:
+                self.logger.write("Spotify URL: %s\n"%siteurl)
+            spotbot.DEBUG = self.DEBUG
+            spotbot.humanize = self.humanize
+            spotbot.logging = self.logging
             spotbot.makehttprequest(siteurl)
             spotbot.gethttpresponsecontent()
             episodeurls = spotbot.getallepisodes()
@@ -831,6 +877,8 @@ class BuzzBot(object):
                     epid = eps.groups()[0]
                     episodeidlist.append(epid)
             episodeids = ",".join(episodeidlist)
+            if self.logging:
+                self.logger.write("Spotify episode Ids: %s\n"%episodeids)
             #print(episodeurls)
             clientid, accesstoken = "", ""
             clientidpattern = re.compile("\"clientId\"\:\"([^\"]+)\"", re.DOTALL)
@@ -846,21 +894,28 @@ class BuzzBot(object):
             if cdps:
                 correlationid = cdps.groups()[0]
             clienttoken = spotbot.getclienttoken()
+            if self.logging:
+                self.logger.write("Spotify access token: %s, client token: %s\n"%(accesstoken, clienttoken))
             spotmp3list = []
             for eid in episodeidlist:
                 epmp3url = spotbot.getepisodemp3(eid, accesstoken, clienttoken)
                 if self.DEBUG:
                     print("Spotify mp3 URL: %s"%epmp3url)
+                if self.logging:
+                    self.logger.write("Spotify mp3 URL: %s\n"%epmp3url)
                 spotmp3list.append(epmp3url)
             while ctr < targetcount:
                 if self.DEBUG:
                     print("SPOTIFY ITERATION #%s ======================="%ctr)
+                if self.logging:
+                    self.logger.write("SPOTIFY ITERATION #%s =======================\n"%ctr)
                 for epurl in spotmp3list:
                     content = spotbot.getepisode(epurl)
-                    print(epurl)
+                    if self.logging:
+                        self.logger.write("Getting Spotify mp3 from %s\n"%epurl)
                     if self.DEBUG:
                         t = str(int(time.time() * 1000))
-                        fs = open("dumps/spotify_%s.mp3"%t, "wb")
+                        fs = open(self.dumpdir + os.path.sep + "spotify_%s.mp3"%t, "wb")
                         fs.write(content)
                         fs.close()
                 ctr += 1
@@ -872,9 +927,14 @@ class BuzzBot(object):
                 self.hitstatus['spotify'] = []
                 self.hitstatus['spotify'].append(boolret)
         elif sitename.lower() == "amazon":
-            ambot = AmazonBot(apikey) # Get this from the environment
+            ambot = AmazonBot(apikey, self.proxies) # Get this from the environment
             if self.DEBUG:
                 print("Amazon: %s"%siteurl)
+            if self.logging:
+                self.logger.write("Amazon URL: %s\n"%siteurl)
+            ambot.DEBUG = self.DEBUG
+            ambot.humanize = self.humanize
+            ambot.logging = self.logging
             idpattern = re.compile("https\:\/\/music\.amazon\.com\/podcasts\/(.*)$")
             idps = re.search(idpattern, siteurl)
             urlid = ""
@@ -922,6 +982,8 @@ class BuzzBot(object):
             if crs:
                 csrfrnd = crs.groups()[0]
             paramstuple = (urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl)
+            if self.logging:
+                self.logger.write("Amazon 'visual' url first request parameters:\n urlid: %s\nsession Id: %s\nipaddr: %s\ncsrftoken: %s\ncsrfts: %s\ncsrfrnd: %s\ndevid: %s\ndevtype: %s\n"%(urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype))
             datadict = ambot.getvisualdict(paramstuple, "", 0)
             #print(datadict)
             episodeurls = []
@@ -944,9 +1006,13 @@ class BuzzBot(object):
                             episodeids.append(eps.groups()[0])
             except:
                 print("Error in extracting episode links: %s"%sys.exc_info()[1].__str__())
+                if self.logging:
+                    self.logger.write("Error in extracting episode links: %s\n"%sys.exc_info()[1].__str__())
             ectr = 0
             mediaurlslist = []
             for eurl in episodeurls:
+                if self.logging:
+                    self.logger.write("Fetching Amazon episode URL: %s\n"%eurl)
                 response = ambot.makehttprequest(eurl)
                 #print(response.content)
                 devtype, devid, favicon, mktplace, sessid, ipaddr, csrftoken, csrfts, csrfrnd = "", "", "", "", "", "", "", "", ""
@@ -980,6 +1046,8 @@ class BuzzBot(object):
                 params = (urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, eurl)
                 mediaidpattern = re.compile("\"mediaId\"\:\"(https:\/\/[^\"]+)\",", re.DOTALL)
                 mflag = 1
+                if self.logging:
+                    self.logger.write("Amazon 'visual' url second request parameters:\n urlid: %s\nsessid: %s\nipaddr: %s\ncsrftoken: %s\ncsrfts: %s\ncsrfrnd: %s\ndevid: %s\ndevtype: %s\n"%(urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype))
                 mediadict = ambot.getvisualdict(params, episodeids[ectr], mflag)
                 try:
                     content = str(mediadict['methods'][0]['content'])
@@ -987,15 +1055,22 @@ class BuzzBot(object):
                     cps = re.search(mediaidpattern, content)
                     if cps:
                         mediaurl = cps.groups()[0]
-                        print(mediaurl)
+                        if self.DEBUG:
+                            print(mediaurl)
                         mediaurlslist.append(mediaurl)
                 except:
-                    print("Error in extracting media links: %s"%sys.exc_info()[1].__str__())
+                    print("Error in extracting Amazon media links: %s"%sys.exc_info()[1].__str__())
+                    if self.logging:
+                        self.logger.write("Error in extracting Amazon media links: %s\n"%sys.exc_info()[1].__str__())
                 ectr += 1
             ctr = 0
+            if self.logging:
+                self.logger.write("Amazon media links: %s\n"%("\n".join(mediaurlslist),))
             while ctr < targetcount:
                 if self.DEBUG:
                     print("AMAZON ITERATION #%s ======================="%ctr)
+                if self.logging:
+                    self.logger.write("AMAZON ITERATION #%s =======================\n"%ctr)
                 for mediaurl in mediaurlslist:
                     ambot.httpheaders['Referer'] = "https://music.amazon.com/"
                     ambot.httpheaders['range'] = "bytes=0-"
@@ -1005,9 +1080,11 @@ class BuzzBot(object):
                     ambot.httpheaders['Accept-Encoding'] = "identity;q=1, *;q=0"
                     ambot.httpheaders['Accept'] = "*/*"
                     response = ambot.makehttprequest(mediaurl)
+                    if self.logging:
+                        self.logger.write("Fetched Amazon URL: %s\n"%mediaurl)
                     if self.DEBUG:
                         t = str(int(time.time() * 1000))
-                        fa = open("dumps/amazon_%s.mp3"%t, "wb")
+                        fa = open(self.dumpdir + os.path.sep + "amazon_%s.mp3"%t, "wb")
                         fa.write(response.content)
                         fa.close()
                     else:
@@ -1020,12 +1097,43 @@ class BuzzBot(object):
             else:
                 self.hitstatus['amazon'] = []
                 self.hitstatus['amazon'].append(boolret)
+            if self.logging:
+                self.logger.write("Done hitting podcasts for %s\n"%sitename)
         else:
             return False
         return boolret
 
 
+"""
+Class to implement basic logging
+"""
+class Logger(object):
 
+    def __init__(self, logfile):
+        self.logdir = os.path.dirname(logfile)
+        self.logfilepath = logfile
+        self.logfilename = os.path.basename(logfile)
+        if not os.path.isdir(self.logdir):
+            os.makedirs(self.logdir, 0o777)
+        if os.path.exists(self.logfilepath):
+            self.logger = open(self.logfilepath, "a")
+        else:
+            self.logger = open(self.logfilepath, "w")
+        self.lastmessage = ""
+
+
+    def write(self, message):
+        self.lastmessage = message
+        self.logger.write(message)
+
+
+    def close(self):
+        self.logger.close()
+
+
+"""
+Class implementing the user interface.
+"""
 class GUI(object):
 
     def __init__(self):
@@ -1035,6 +1143,7 @@ class GUI(object):
         self.spotifyclientid = ""
         self.spotifyclientsecret = ""
         self.mainwin = Tk()
+        self.valcmd = (self.mainwin.register(self.validate), '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
 
         self.proxylabel = Label(self.mainwin, text="Add (https) Proxies: ", width=25, justify=LEFT, relief=RAISED)
         self.proxylabel.grid(row=0, column=0, sticky=W)
@@ -1073,7 +1182,7 @@ class GUI(object):
         #self.targetamazonhits = Entry(self.mainwin, width=40, borderwidth=1)
         self.defaultamazonhits = StringVar()
         self.defaultamazonhits.set(-1)
-        self.targetamazonhits = ttk.Combobox(self.mainwin, textvariable=self.defaultamazonhits, values=[i for i in range(-1,1000)])
+        self.targetamazonhits = ttk.Combobox(self.mainwin, textvariable=self.defaultamazonhits, values=[i for i in range(-1,1000)], validatecommand=self.valcmd)
         self.targetamazonhits.grid(row=6, column=1, columnspan=3)
         self.targetcountspotifylbl = StringVar()
         self.targetcountspotifylabel = Label(self.mainwin, textvariable=self.targetcountspotifylbl, width=25, justify=LEFT, relief=RAISED)
@@ -1082,7 +1191,7 @@ class GUI(object):
         #self.targetspotifyhits = Entry(self.mainwin, width=40, borderwidth=1)
         self.defaultspotifyhits = StringVar()
         self.defaultspotifyhits.set(-1)
-        self.targetspotifyhits = ttk.Combobox(self.mainwin, textvariable=self.defaultspotifyhits, values=[i for i in range(-1,1000)])
+        self.targetspotifyhits = ttk.Combobox(self.mainwin, textvariable=self.defaultspotifyhits, values=[i for i in range(-1,1000)], validatecommand=self.valcmd)
         self.targetspotifyhits.grid(row=7, column=1, columnspan=3)
         self.targetcountapplelbl = StringVar()
         self.targetcountapplelabel = Label(self.mainwin, textvariable=self.targetcountapplelbl, width=25, justify=LEFT, relief=RAISED)
@@ -1091,17 +1200,17 @@ class GUI(object):
         #self.targetapplehits = Entry(self.mainwin, width=40, borderwidth=1)
         self.defaultapplehits = StringVar()
         self.defaultapplehits.set(-1)
-        self.targetapplehits = ttk.Combobox(self.mainwin, textvariable=self.defaultapplehits, values=[i for i in range(-1,1000)])
+        self.targetapplehits = ttk.Combobox(self.mainwin, textvariable=self.defaultapplehits, values=[i for i in range(-1,1000)], validatecommand=self.valcmd)
         self.targetapplehits.grid(row=8, column=1, columnspan=3)
-        self.DEBUG = False # By default, we don't we don't want to see debug output
-        self.debugchkbtn = Checkbutton(self.mainwin, text = "Debug", variable = self.DEBUG, onvalue = True, offvalue = False, height=2, width = 10)
+        self.DEBUG = IntVar() # By default, we don't we don't want to see debug output
+        self.debugchkbtn = Checkbutton(self.mainwin, text = "Debug", variable = self.DEBUG, onvalue = 1, offvalue = 0, height=2, width = 10)
         self.debugchkbtn.grid(row=9, column=0)
-        self.humanize = True
-        self.humanizechkbtn = Checkbutton(self.mainwin, text = "Humanize", variable = self.humanize, onvalue = True, offvalue = False, height=2, width = 10)
+        self.humanize = IntVar()
+        self.humanizechkbtn = Checkbutton(self.mainwin, text = "Humanize", variable = self.humanize, onvalue = 1, offvalue = 0, height=2, width = 10)
         self.humanizechkbtn.grid(row=9, column=1)
         self.humanizechkbtn.select() # By default, we will humanize
-        self.logging = True
-        self.logchkbtn = Checkbutton(self.mainwin, text = "Logging", variable = self.logging, onvalue = True, offvalue = False, height=2, width = 10)
+        self.logging = IntVar()
+        self.logchkbtn = Checkbutton(self.mainwin, text = "Logging", variable = self.logging, onvalue = 1, offvalue = 0, height=2, width = 10)
         self.logchkbtn.grid(row=9, column=2)
         self.logchkbtn.select() # By default, we log the operation
         self.runbutton = Button(self.mainwin, text="Start Bot", command=self.startbot)
@@ -1119,6 +1228,20 @@ class GUI(object):
         self.proxieslist = []
 
         self.mainwin.mainloop()
+
+
+    def validate(self, action, index, value_if_allowed, prior_value, text, validation_type, trigger_type, widget_name):
+        if value_if_allowed:
+            try:
+                int(value_if_allowed)
+                return True
+            except ValueError:
+                self.errbox = MessageBox(self.mainwin)
+                self.errbox.showerror(message="Invalid value for hits")
+                return False
+        else:
+            return False
+
 
 
     def startbot(self):
@@ -1171,6 +1294,11 @@ class GUI(object):
         amazontargethitscount = self.targetamazonhits.get()
         spotifytargethitscount = self.targetspotifyhits.get()
         appletargethitscount = self.targetapplehits.get()
+        self.DEBUG = self.DEBUG.get()
+        self.humanize = self.humanize.get()
+        self.logging = self.logging.get()
+        if self.DEBUG:
+            print("%s ___ %s ____ %s"%(self.DEBUG, self.humanize, self.logging))
         # Start bot in a background thread...
         self.rt = Thread(target=self.runbot, args=(self.targeturl, amazontargethitscount, spotifytargethitscount, appletargethitscount))
         self.rt.daemon = True
@@ -1187,6 +1315,9 @@ class GUI(object):
     """
     def runbot(self, targeturl, amazonsettarget=-1, spotifysettarget=-1, applesettarget=-1):
         self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret, self.proxieslist)
+        self.buzz.DEBUG = self.DEBUG
+        self.buzz.humanize = self.humanize
+        self.buzz.logging = self.logging
         self.buzz.settargetcounts(amazonsettarget, spotifysettarget, applesettarget)
         self.buzz.makerequest()
         self.buzz.gethttpresponsecontent()
@@ -1220,6 +1351,7 @@ class GUI(object):
     def closebot(self):
         if self.rt is not None:
             self.rt.join()
+        self.buzz.logger.close()
         sys.exit()
 
 
