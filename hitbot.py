@@ -59,6 +59,13 @@ def makeregex(targetstr):
     targetregex = re.compile(targetpattern, re.DOTALL|re.IGNORECASE)
     return targetregex
 
+"""
+Generate a random integer between 0 and 10 (or whatever t is). 
+This will be used as a interval (in seconds) between 2 successive requests.
+"""
+def getrandominterval(t=10):
+    return random.randint(0, t)
+
 
 # Redirects handler, in case we need to handle HTTP redirects.
 class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -847,6 +854,9 @@ class BuzzBot(object):
                 for pclink in podcastlinks:
                     if self.logging:
                         self.logger.write("Getting Apple podcast mp3 from %s\n"%pclink)
+                    if self.humanize:
+                        ht = getrandominterval(5)
+                        time.sleep(ht)
                     resp = applebot.downloadpodcast(pclink, self.dumpdir)
                 ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
@@ -910,6 +920,9 @@ class BuzzBot(object):
                 if self.logging:
                     self.logger.write("SPOTIFY ITERATION #%s =======================\n"%ctr)
                 for epurl in spotmp3list:
+                    if self.humanize:
+                        ht = getrandominterval(5)
+                        time.sleep(ht)
                     content = spotbot.getepisode(epurl)
                     if self.logging:
                         self.logger.write("Getting Spotify mp3 from %s\n"%epurl)
@@ -1048,6 +1061,9 @@ class BuzzBot(object):
                 mflag = 1
                 if self.logging:
                     self.logger.write("Amazon 'visual' url second request parameters:\n urlid: %s\nsessid: %s\nipaddr: %s\ncsrftoken: %s\ncsrfts: %s\ncsrfrnd: %s\ndevid: %s\ndevtype: %s\n"%(urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype))
+                if self.humanize:
+                    ht = getrandominterval(5)
+                    time.sleep(ht)
                 mediadict = ambot.getvisualdict(params, episodeids[ectr], mflag)
                 try:
                     content = str(mediadict['methods'][0]['content'])
@@ -1079,6 +1095,9 @@ class BuzzBot(object):
                     ambot.httpheaders['sec-fetch-site'] = "cross-site"
                     ambot.httpheaders['Accept-Encoding'] = "identity;q=1, *;q=0"
                     ambot.httpheaders['Accept'] = "*/*"
+                    if self.humanize:
+                        ht = getrandominterval(5)
+                        time.sleep(ht)
                     response = ambot.makehttprequest(mediaurl)
                     if self.logging:
                         self.logger.write("Fetched Amazon URL: %s\n"%mediaurl)
