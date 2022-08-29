@@ -101,6 +101,7 @@ class AmazonBot(object):
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
         except:
+            print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
         self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Pragma' : 'no-cache', 'Cache-Control' : 'no-cache', }
         self.httpheaders['upgrade-insecure-requests'] = "1"
@@ -357,6 +358,7 @@ class SpotifyBot(object):
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
         except:
+            print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
         self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Connection' : 'keep-alive', }
         self.httpheaders['cache-control'] = "no-cache"
@@ -543,6 +545,7 @@ class AppleBot(object):
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler, NoRedirectHandler())
         except:
+            print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), NoRedirectHandler())
         self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Keep-Alive' : '115', 'Connection' : 'keep-alive', }
         self.httpheaders['cache-control'] = "max-age=0"
@@ -592,7 +595,7 @@ class AppleBot(object):
 
 
     def listpodcastsonpage(self):
-        content = self.httpcontent
+        content = str(self.httpcontent)
         soup = BeautifulSoup(content, features="html.parser")
         allanchortags = soup.find_all("a", {'class' : 'link tracks__track__link--block'})
         podcastlinks = []
@@ -674,6 +677,7 @@ class BuzzBot(object):
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0]})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
         except:
+            print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
         self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Keep-Alive' : '115', 'Connection' : 'keep-alive', }
         self.httpheaders['cache-control'] = "max-age=0"
@@ -705,9 +709,15 @@ class BuzzBot(object):
         httpsproxycount = self.proxies['https'].__len__() - 1
         httpsrandomctr = random.randint(0, httpsproxycount)
         self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
-        self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
-        if self.logging:
-            self.logger.write("Created opener using proxy %s\n"%self.proxies['https'][httpsrandomctr])
+        try:
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
+            if self.logging:
+                self.logger.write("Created opener using proxy %s\n"%self.proxies['https'][httpsrandomctr])
+        except:
+            print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
+            if self.logging:
+                self.logger.write("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
         return self.httpopener
 
 
@@ -735,9 +745,9 @@ class BuzzBot(object):
         try:
             self.httpresponse = self.httpopener.open(self.httprequest)
         except:
-            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            print("Error making request to %s: %s"%(self.requesturl, sys.exc_info()[1].__str__()))
             if self.logging:
-                self.logger.write("Error making request to %s: %s\n"%(requrl, sys.exc_info()[1].__str__()))
+                self.logger.write("Error making request to %s: %s\n"%(self.requesturl, sys.exc_info()[1].__str__()))
             return None
         self.httpcookies = self.__class__._getCookieFromResponse(self.httpresponse)
         self.httpheaders["cookie"] = self.httpcookies
@@ -789,7 +799,7 @@ class BuzzBot(object):
 
 
     def getpodcasturls(self):
-        content = self.httpcontent
+        content = str(self.httpcontent)
         soup = BeautifulSoup(content, features="html.parser")
         podcastsites = ['apple', 'google', 'amazon', 'spotify', 'overcast', 'stitcher', 'iheart', 'tun.in', 'podcastaddict', 'castro', 'castbox', 'podchaser', 'pcs.st', 'deezer', 'listennotes', 'player.fm', 'podcastindex', 'podfriend', 'buzzsprout']
         self.results = {}
@@ -799,6 +809,8 @@ class BuzzBot(object):
                 self.logger.write("Error getting html content: %s\n"%sys.exc_info()[1].__str__())
             return self.results
         h1tag = soup.find("h1")
+        if not h1tag:
+            return {}
         h1contents = h1tag.renderContents().decode('utf-8')
         self.podcasttitle = h1contents
         self.podcasttitle = self.podcasttitle.replace("\n", "").replace("\r", "")
@@ -1321,9 +1333,9 @@ class GUI(object):
         proxiestext = self.proxytext.get('1.0', 'end-1c')
         proxieslines = proxiestext.split("\n")
         self.proxieslist = []
-        self.httpspattern = re.compile("^https\:\/\/", re.IGNORECASE)
+        self.proxypattern = re.compile("^\d+\.\d+\.\d+\.\d+\:\d+$", re.IGNORECASE)
         for line in proxieslines:
-            if not re.search(self.httpspattern, line):
+            if not re.search(self.proxypattern, line):
                 continue
             self.proxieslist.append(line)
         amazontargethitscount = self.targetamazonhits.get()
