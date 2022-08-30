@@ -6,6 +6,9 @@ import subprocess
 from multiprocessing import Process, Pool, Queue
 from threading import Thread
 
+import socks
+import socket
+import ssl
 import urllib, requests
 from urllib.parse import urlencode, quote_plus, urlparse
 from requests_html import HTMLSession
@@ -67,6 +70,13 @@ def getrandominterval(t=10):
     return random.randint(0, t)
 
 
+def createrequestcontext():
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+
 # Redirects handler, in case we need to handle HTTP redirects.
 class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     def http_error_302(self, req, fp, code, msg, headers):
@@ -98,11 +108,24 @@ class AmazonBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
+            self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+        except:
+            self.proxyip, self.proxyport = "", ""
+        try:
+            self.context = createrequestcontext()
+            #if self.proxyip != "":
+            #    socks.set_default_proxy(socks.SOCKS5, self.proxyip, int(self.proxyport))
+            #    socket.socket = socks.socksocket
+            self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+        if self.proxyip != "":
+            self.randomproxyopener = self.buildopenerrandomproxy()
+        else:
+            self.randomproxyopener = None
         self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Pragma' : 'no-cache', 'Cache-Control' : 'no-cache', }
         self.httpheaders['upgrade-insecure-requests'] = "1"
         self.httpheaders['sec-fetch-dest'] = "document"
@@ -123,6 +146,20 @@ class AmazonBot(object):
             return None
         self.httpcookies = BuzzBot._getCookieFromResponse(self.httpresponse)
         self.httpheaders['cookie'] = self.httpcookies
+
+
+    def buildopenerrandomproxy(self):
+        httpsproxycount = self.proxies['https'].__len__() - 1
+        httpsrandomctr = random.randint(0, httpsproxycount)
+        self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+        self.context = createrequestcontext()
+        self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
+        try:
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+        except:
+            print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+        return self.httpopener
 
 
     def makehttprequest(self, requrl):
@@ -355,11 +392,24 @@ class SpotifyBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
+            self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+        except:
+            self.proxyip, self.proxyport = "", ""
+        try:
+            self.context = createrequestcontext()
+            #if self.proxyip != "":
+            #    socks.set_default_proxy(socks.SOCKS5, self.proxyip, int(self.proxyport))
+            #    socket.socket = socks.socksocket
+            self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+        if self.proxyip != "":
+            self.randomproxyopener = self.buildopenerrandomproxy()
+        else:
+            self.randomproxyopener = None
         self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Connection' : 'keep-alive', }
         self.httpheaders['cache-control'] = "no-cache"
         self.httpheaders['upgrade-insecure-requests'] = "1"
@@ -375,7 +425,7 @@ class SpotifyBot(object):
         try:
             self.httpresponse = self.httpopener.open(self.httprequest)
         except:
-            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            print("Error making request to %s: %s"%(requesturl, sys.exc_info()[1].__str__()))
             return None
         #print(self.httpresponse.headers)
         self.httpcookies = BuzzBot._getCookieFromResponse(self.httpresponse)
@@ -392,6 +442,20 @@ class SpotifyBot(object):
         if self.DEBUG:
             print("Cookie Sent: %s"%self.httpheaders['cookie'])
         
+
+    def buildopenerrandomproxy(self):
+        httpsproxycount = self.proxies['https'].__len__() - 1
+        httpsrandomctr = random.randint(0, httpsproxycount)
+        self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+        self.context = createrequestcontext()
+        self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
+        try:
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+        except:
+            print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+        return self.httpopener
+
 
 
     def searchforpodcasts(self, searchkey, limit=20):
@@ -542,11 +606,24 @@ class AppleBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
+            self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+        except:
+            self.proxyip, self.proxyport = "", ""
+        try:
+            self.context = createrequestcontext()
+            #if self.proxyip != "":
+            #    socks.set_default_proxy(socks.SOCKS5, self.proxyip, int(self.proxyport))
+            #    socket.socket = socks.socksocket
+            self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler, NoRedirectHandler())
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler, NoRedirectHandler())
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), NoRedirectHandler())
+        if self.proxyip != "":
+            self.randomproxyopener = self.buildopenerrandomproxy()
+        else:
+            self.randomproxyopener = None
         self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Keep-Alive' : '115', 'Connection' : 'keep-alive', }
         self.httpheaders['cache-control'] = "max-age=0"
         self.httpheaders['upgrade-insecure-requests'] = "1"
@@ -558,6 +635,20 @@ class AppleBot(object):
         self.httpheaders['sec-ch-ua'] = "\".Not/A)Brand\";v=\"99\", \"Google Chrome\";v=\"103\", \"Chromium\";v=\"103\""
         self.httpheaders['sec-ch-ua-platform'] = "Linux"
         self.httpcookies = None
+
+
+    def buildopenerrandomproxy(self):
+        httpsproxycount = self.proxies['https'].__len__() - 1
+        httpsrandomctr = random.randint(0, httpsproxycount)
+        self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+        self.context = createrequestcontext()
+        self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
+        try:
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+        except:
+            print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+        return self.httpopener
         
 
 
@@ -619,7 +710,7 @@ class AppleBot(object):
         try:
             self.httpresponse = self.httpopener.open(self.httprequest)
         except:
-            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            print("Error making request to %s: %s"%(resourceurl, sys.exc_info()[1].__str__()))
             return None
         try:
             location = self.httpresponse.getheader("location")
@@ -673,12 +764,28 @@ class BuzzBot(object):
         self.httprequest = None
         self.httpresponse = None
         self.httpcontent = None
+        self.logdir = os.getcwd() + os.path.sep + "logs"
+        self.logfile = self.logdir + os.path.sep + "hitbot.log"
+        self.logger = Logger(self.logfile)
         try:
+            self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+        except:
+            self.proxyip, self.proxyport = "", ""
+        try:
+            self.context = createrequestcontext()
+            #if self.proxyip != "":
+            #    socks.set_default_proxy(socks.https, self.proxyip, int(self.proxyport))
+            #    socket.socket = socks.socksocket
+            self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0]})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+        if self.proxyip != "":
+            self.randomproxyopener = self.buildopenerrandomproxy()
+        else:
+            self.randomproxyopener = None
         self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Keep-Alive' : '115', 'Connection' : 'keep-alive', }
         self.httpheaders['cache-control'] = "max-age=0"
         self.httpheaders['upgrade-insecure-requests'] = "1"
@@ -699,9 +806,6 @@ class BuzzBot(object):
         self.dumpdir = os.getcwd() + os.path.sep + "mediadumps"
         if not os.path.isdir(self.dumpdir):
             os.makedirs(self.dumpdir, 0o777)
-        self.logdir = os.getcwd() + os.path.sep + "logs"
-        self.logfile = self.logdir + os.path.sep + "hitbot.log"
-        self.logger = Logger(self.logfile)
         self.logger.write("Starting run at: %s\n"%datetime.strftime(datetime.now(), "%d-%b-%Y %H:%M:%S"))
 
 
@@ -709,8 +813,10 @@ class BuzzBot(object):
         httpsproxycount = self.proxies['https'].__len__() - 1
         httpsrandomctr = random.randint(0, httpsproxycount)
         self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+        self.context = createrequestcontext()
+        self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), self.proxyhandler)
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
             if self.logging:
                 self.logger.write("Created opener using proxy %s\n"%self.proxies['https'][httpsrandomctr])
         except:
