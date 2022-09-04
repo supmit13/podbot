@@ -20,6 +20,7 @@ import numpy as np
 import gzip
 import io
 import hashlib, base64
+import weakref
 
 # Amazon APIs
 import boto3
@@ -37,6 +38,16 @@ import podsearch
 from tkinter import *
 from tkinter.scrolledtext import ScrolledText
 from tkinter import ttk
+
+# TODO:
+"""
+1. Display current hit counts in status message section of the GUI.
+"""
+
+# Module level globals: These variables represent the number of hits made on the service platforms at any instant during a run.
+AMAZON_HIT_STAT = 0
+APPLE_HIT_STAT = 0
+SPOTIFY_HIT_STAT = 0
 
 
 def _decodeGzippedContent(encoded_content):
@@ -759,11 +770,13 @@ class AppleBot(object):
 
 class BuzzBot(object):
     
-    def __init__(self, podlisturl, amazonkey, spotifyclientid, spotifyclientsecret, proxieslist=[]):
+    def __init__(self, podlisturl, amazonkey, spotifyclientid, spotifyclientsecret, parent, proxieslist=[]):
         self.DEBUG = False
         self.humanize = True
         self.logging = True
         self.cleanupmedia = True
+        self.parent = weakref.ref(parent)
+        self.msglabeltext = parent.msglabeltext
         self.proxies = {'https' : proxieslist,}
         self.amazonkey = amazonkey
         self.spotifyclientid = spotifyclientid
@@ -953,6 +966,9 @@ class BuzzBot(object):
 
 
     def hitpodcast(self, siteurl, sitename, targetcount=-1):
+        global AMAZON_HIT_STAT
+        global SPOTIFY_HIT_STAT
+        global APPLE_HIT_STAT
         titleregex = makeregex(self.podcasttitle)
         apikey = self.amazonkey
         clientid = self.spotifyclientid
@@ -967,6 +983,7 @@ class BuzzBot(object):
                 print(siteurl)
             if self.logging:
                 self.logger.write("Apple URL: %s\n"%siteurl)
+            statuspattern = re.compile("APPLE\:\s+\d+", re.DOTALL)
             applebot = AppleBot(self.proxies)
             applebot.DEBUG = self.DEBUG
             applebot.humanize = self.humanize
@@ -987,6 +1004,11 @@ class BuzzBot(object):
                         ht = getrandominterval(5)
                         time.sleep(ht)
                     resp = applebot.downloadpodcast(pclink, self.dumpdir)
+                    APPLE_HIT_STAT += 1
+                    curmessagecontent = self.msglabeltext.get()
+                    replacementmessage = "APPLE: %s"%APPLE_HIT_STAT
+                    curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
+                    self.msglabeltext.set(curmessagecontent)
                 ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = applebot.existsincontent(titleregex)
@@ -1004,6 +1026,7 @@ class BuzzBot(object):
             spotbot.DEBUG = self.DEBUG
             spotbot.humanize = self.humanize
             spotbot.logging = self.logging
+            statuspattern = re.compile("SPOTIFY\:\s+\d+", re.DOTALL)
             spotbot.makehttprequest(siteurl)
             spotbot.gethttpresponsecontent()
             episodeurls = spotbot.getallepisodes()
@@ -1060,6 +1083,11 @@ class BuzzBot(object):
                         fs = open(self.dumpdir + os.path.sep + "spotify_%s.mp3"%t, "wb")
                         fs.write(content)
                         fs.close()
+                    SPOTIFY_HIT_STAT += 1
+                    curmessagecontent = self.msglabeltext.get()
+                    replacementmessage = "SPOTIFY: %s"%SPOTIFY_HIT_STAT
+                    curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
+                    self.msglabeltext.set(curmessagecontent)
                 ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = spotbot.existsincontent(titleregex)
@@ -1077,6 +1105,7 @@ class BuzzBot(object):
             ambot.DEBUG = self.DEBUG
             ambot.humanize = self.humanize
             ambot.logging = self.logging
+            statuspattern = re.compile("AMAZON\:\s+\d+", re.DOTALL)
             idpattern = re.compile("https\:\/\/music\.amazon\.com\/podcasts\/(.*)$")
             idps = re.search(idpattern, siteurl)
             urlid = ""
@@ -1228,6 +1257,11 @@ class BuzzBot(object):
                         ht = getrandominterval(5)
                         time.sleep(ht)
                     response = ambot.makehttprequest(mediaurl)
+                    AMAZON_HIT_STAT += 1
+                    curmessagecontent = self.msglabeltext.get()
+                    replacementmessage = "AMAZON: %s"%AMAZON_HIT_STAT
+                    curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
+                    self.msglabeltext.set(curmessagecontent)
                     if self.logging:
                         self.logger.write("Fetched Amazon URL: %s\n"%mediaurl)
                     if self.DEBUG:
@@ -1252,6 +1286,11 @@ class BuzzBot(object):
         if self.cleanupmedia:
             self.cleanupdownloadedmedia()
         return boolret
+
+
+    def __get__(self, instance, owner):
+        self.parent = instance
+        return self  # expose object to be able access msglabeltext.
 
     """
     Method to clean up downloaded media
@@ -1472,7 +1511,7 @@ class GUI(object):
         self.rt.daemon = True
         self.rt.start()
         self.messagelabel.configure(foreground="green", width=400)
-        self.msglabeltext.set("Operation in progress...")
+        self.msglabeltext.set("Operation in progress...\nAPPLE: 0\nAMAZON: 0\nSPOTIFY: 0")
         # ... and return to user
         return True
 
@@ -1482,7 +1521,7 @@ class GUI(object):
     (possibly by killing the process).
     """
     def runbot(self, targeturl, amazonsettarget=-1, spotifysettarget=-1, applesettarget=-1):
-        self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret, self.proxieslist)
+        self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret, self, self.proxieslist)
         self.buzz.DEBUG = self.DEBUG
         self.buzz.humanize = self.humanize
         self.buzz.logging = self.logging
@@ -1508,12 +1547,16 @@ class GUI(object):
         time.sleep(2) # sleep 2 seconds.
         for tj in self.threadslist:
             tj.join()
+        """
         for site in self.buzz.hitstatus.keys():
             if self.buzz.hitstatus[site].__len__() > 0:
                 self.messagelabel.configure(foreground="green", width=400)
                 self.msglabeltext.set("%s : %s"%(site, self.buzz.hitstatus[site][0]))
+        """
         self.messagelabel.configure(foreground="blue", width=400)
-        self.msglabeltext.set("Finished hitting targets.")
+        curmessagecontent = self.msglabeltext.get()
+        curmessagecontent += "\n\nFinished hitting targets."
+        self.msglabeltext.set(curmessagecontent)
         return True
 
 
@@ -1542,6 +1585,7 @@ References:
 https://github.com/ListenNotes/podcast-api-python
 https://www.listennotes.com/podcast-api/docs/?test=1
 https://music.amazon.com/podcasts/e934affd-05e2-48d5-8236-6b7f2d02e5e2
+https://stackoverflow.com/questions/10791588/getting-container-parent-object-from-within-python
 
 Developer: Supriyo Mitra
 Date: 11-08-2022
