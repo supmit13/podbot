@@ -1,6 +1,7 @@
 import os, sys, re, time
 from datetime import datetime
 import random
+import shutil
 
 import subprocess
 from multiprocessing import Process, Pool, Queue
@@ -150,19 +151,20 @@ class AmazonBot(object):
 
     def buildopenerrandomproxy(self):
         httpsproxycount = self.proxies['https'].__len__() - 1
-        httpsrandomctr = random.randint(0, httpsproxycount)
-        self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
+            httpsrandomctr = random.randint(0, httpsproxycount)
+            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
         return self.httpopener
 
 
     def makehttprequest(self, requrl):
+        self.httpopener = self.buildopenerrandomproxy()
         self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
         session = HTMLSession()
         self.httpresponse = session.get(requrl)
@@ -344,6 +346,7 @@ class AmazonBot(object):
         httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'content-encoding' : 'amz-1.0', 'content-type' : 'application/json; charset=UTF-8', 'origin' : 'https://music.amazon.com', 'pragma' : 'no-cache', 'referer' : siteurl, 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'same-origin', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amz-target' : 'com.amazon.dmpbrowsevisualservice.skills.DMPBrowseVisualService.ShowPodcastWebSkill', 'x-amzn-requestid' : ''}
         httpheaders['cookie'] = ""
         httpheaders['cookie'] += self.httpheaders['cookie']
+        self.httpopener = self.buildopenerrandomproxy()
         if mediaflag == 0:
             datadict = {"preset":"{\"id\":\"%s\",\"nextToken\":null}"%urlid,"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"","sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"},"hidePromptPreference":{"preferenceMap":{},"__type":"Podcast.FollowPromptInterface.v1_0#HidePromptPreferenceClientState"}},"extra":{}}
         else:
@@ -445,15 +448,15 @@ class SpotifyBot(object):
 
     def buildopenerrandomproxy(self):
         httpsproxycount = self.proxies['https'].__len__() - 1
-        httpsrandomctr = random.randint(0, httpsproxycount)
-        self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
+            httpsrandomctr = random.randint(0, httpsproxycount)
+            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
         return self.httpopener
 
 
@@ -499,6 +502,7 @@ class SpotifyBot(object):
 
 
     def makehttprequest(self, requrl, headers=None):
+        self.httpopener = self.buildopenerrandomproxy()
         if headers is None:
             headers = self.httpheaders
         self.httprequest = urllib.request.Request(requrl, headers=headers)
@@ -516,8 +520,8 @@ class SpotifyBot(object):
             self.httpcontent = _decodeGzippedContent(encodedcontent)
         except:
             print("Error reading content: %s"%sys.exc_info()[1].__str__())
-            self.httpcontent = None
-            return None
+            self.httpcontent = ""
+            return ""
         return str(self.httpcontent)
 
 
@@ -531,6 +535,7 @@ class SpotifyBot(object):
     def getepisodemp3url(self, episodeid, accesstoken, clienttoken):
         episodeurl = "https://spclient.wg.spotify.com/soundfinder/v1/unauth/episode/%s/com.widevine.alpha?market=IN"%episodeid
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken, 'app-platform' : 'WebPlayer'}
+        self.httpopener = self.buildopenerrandomproxy()
         epinforequest = urllib.request.Request(episodeurl, headers=httpheaders)
         try:
             self.httpresponse = self.httpopener.open(epinforequest)
@@ -568,6 +573,7 @@ class SpotifyBot(object):
         databytes = json.dumps(data).encode('utf-8')
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Content-Type' : 'application/json', 'Origin' : 'https://open.spotify.com'}
         httpheaders['Content-Length'] = databytes.__len__()
+        self.httpopener = self.buildopenerrandomproxy()
         clienttokenrequest = urllib.request.Request(requesturl, data=databytes, headers=httpheaders)
         try:
             self.httpresponse = self.httpopener.open(clienttokenrequest)
@@ -639,15 +645,15 @@ class AppleBot(object):
 
     def buildopenerrandomproxy(self):
         httpsproxycount = self.proxies['https'].__len__() - 1
-        httpsrandomctr = random.randint(0, httpsproxycount)
-        self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            httpsrandomctr = random.randint(0, httpsproxycount)
+            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler, NoRedirectHandler())
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, NoRedirectHandler())
         return self.httpopener
         
 
@@ -657,6 +663,7 @@ class AppleBot(object):
 
 
     def makehttprequest(self, requrl):
+        self.httpopener = self.buildopenerrandomproxy()
         self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
         try:
             self.httpresponse = self.httpopener.open(self.httprequest)
@@ -672,13 +679,13 @@ class AppleBot(object):
             self.httpcontent = _decodeGzippedContent(encodedcontent)
         except:
             print("Error reading content: %s"%sys.exc_info()[1].__str__())
-            self.httpcontent = None
-            return None
+            self.httpcontent = ""
+            return ""
         return str(self.httpcontent)
 
 
     def existsincontent(self, regexpattern):
-        content = self.httpcontent
+        content = str(self.httpcontent)
         #print(content)
         if re.search(regexpattern, content):
             return True
@@ -705,6 +712,7 @@ class AppleBot(object):
         resourceurl = ""
         if aps:
             resourceurl = aps.groups()[0]
+        self.httpopener = self.buildopenerrandomproxy()
         #print("Resource URL: %s"%resourceurl)
         self.httprequest = urllib.request.Request(resourceurl, headers=self.httpheaders)
         try:
@@ -728,6 +736,7 @@ class AppleBot(object):
             else:
                 mediaurl = ""
         except:
+            print("Error getting MediaURL from '%s': %s"%(location, sys.exc_info()[1].__str__()))
             mediaurl = ""
         mediaurl = mediaurl.replace("amp;", "")
         #print("Media URL: %s"%mediaurl)
@@ -811,11 +820,11 @@ class BuzzBot(object):
 
     def buildopenerrandomproxy(self):
         httpsproxycount = self.proxies['https'].__len__() - 1
-        httpsrandomctr = random.randint(0, httpsproxycount)
-        self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
+            httpsrandomctr = random.randint(0, httpsproxycount)
+            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
             if self.logging:
                 self.logger.write("Created opener using proxy %s\n"%self.proxies['https'][httpsrandomctr])
@@ -845,6 +854,7 @@ class BuzzBot(object):
 
 
     def makerequest(self):
+        self.httpopener = self.buildopenerrandomproxy()
         if self.logging:
             self.logger.write("Making GET request to %s\n"%self.requesturl)
         self.httprequest = urllib.request.Request(self.requesturl, headers=self.httpheaders)
@@ -1351,19 +1361,23 @@ class GUI(object):
         self.defaultapplehits.set(-1)
         self.targetapplehits = ttk.Combobox(self.mainwin, textvariable=self.defaultapplehits, values=[i for i in range(-1,1000)], validatecommand=self.valcmd)
         self.targetapplehits.grid(row=8, column=1, columnspan=3)
-        self.DEBUG = IntVar() # By default, we don't we don't want to see debug output
-        self.debugchkbtn = Checkbutton(self.mainwin, text = "Debug", variable = self.DEBUG, onvalue = 1, offvalue = 0, height=2, width = 10)
+        self.DEBUG_var = IntVar() # By default, we don't we don't want to see debug output
+        self.DEBUG = False
+        self.debugchkbtn = Checkbutton(self.mainwin, text = "Debug", variable = self.DEBUG_var, onvalue = 1, offvalue = 0, height=2, width = 10)
         self.debugchkbtn.grid(row=9, column=0)
-        self.humanize = IntVar()
-        self.humanizechkbtn = Checkbutton(self.mainwin, text = "Humanize", variable = self.humanize, onvalue = 1, offvalue = 0, height=2, width = 10)
+        self.humanize_var = IntVar()
+        self.humanize = False
+        self.humanizechkbtn = Checkbutton(self.mainwin, text = "Humanize", variable = self.humanize_var, onvalue = 1, offvalue = 0, height=2, width = 10)
         self.humanizechkbtn.grid(row=9, column=1)
         self.humanizechkbtn.select() # By default, we will humanize
-        self.logging = IntVar()
-        self.logchkbtn = Checkbutton(self.mainwin, text = "Logging", variable = self.logging, onvalue = 1, offvalue = 0, height=2, width = 10)
+        self.logging_var = IntVar()
+        self.logging = True
+        self.logchkbtn = Checkbutton(self.mainwin, text = "Logging", variable = self.logging_var, onvalue = 1, offvalue = 0, height=2, width = 10)
         self.logchkbtn.grid(row=9, column=2)
         self.logchkbtn.select() # By default, we log the operation
-        self.cleanupmedia = IntVar()
-        self.cleanupmediachkbtn = Checkbutton(self.mainwin, text = "Clean up", variable = self.cleanupmedia, onvalue = 1, offvalue = 0, height=2, width = 10)
+        self.cleanupmedia_var = IntVar()
+        self.cleanupmedia = True
+        self.cleanupmediachkbtn = Checkbutton(self.mainwin, text = "Clean up", variable = self.cleanupmedia_var, onvalue = 1, offvalue = 0, height=2, width = 10)
         self.cleanupmediachkbtn.grid(row=9, column=3)
         self.cleanupmediachkbtn.select()
         self.runbutton = Button(self.mainwin, text="Start Bot", command=self.startbot)
@@ -1439,7 +1453,7 @@ class GUI(object):
         proxiestext = self.proxytext.get('1.0', 'end-1c')
         proxieslines = proxiestext.split("\n")
         self.proxieslist = []
-        self.proxypattern = re.compile("^\d+\.\d+\.\d+\.\d+\:\d+$", re.IGNORECASE)
+        self.proxypattern = re.compile("^https\:\/\/\d+\.\d+\.\d+\.\d+\:\d+$", re.IGNORECASE)
         for line in proxieslines:
             if not re.search(self.proxypattern, line):
                 continue
@@ -1447,10 +1461,10 @@ class GUI(object):
         amazontargethitscount = self.targetamazonhits.get()
         spotifytargethitscount = self.targetspotifyhits.get()
         appletargethitscount = self.targetapplehits.get()
-        self.DEBUG = self.DEBUG.get()
-        self.humanize = self.humanize.get()
-        self.logging = self.logging.get()
-        self.cleanupmedia = self.cleanupmedia.get()
+        self.DEBUG = self.DEBUG_var.get()
+        self.humanize = self.humanize_var.get()
+        self.logging = self.logging_var.get()
+        self.cleanupmedia = self.cleanupmedia_var.get()
         if self.DEBUG:
             print("%s ___ %s ____ %s"%(self.DEBUG, self.humanize, self.logging))
         # Start bot in a background thread...
