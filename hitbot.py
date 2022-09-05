@@ -39,10 +39,6 @@ from tkinter import *
 from tkinter.scrolledtext import ScrolledText
 from tkinter import ttk
 
-# TODO:
-"""
-1. Display current hit counts in status message section of the GUI.
-"""
 
 # Module level globals: These variables represent the number of hits made on the service platforms at any instant during a run.
 AMAZON_HIT_STAT = 0
