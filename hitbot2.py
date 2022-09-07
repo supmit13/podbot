@@ -13,6 +13,7 @@ import ssl
 import urllib, requests
 from urllib.parse import urlencode, quote_plus, urlparse
 from requests_html import HTMLSession
+import ipaddress
 
 import simplejson as json
 from bs4 import BeautifulSoup
@@ -78,6 +79,26 @@ def getrandominterval(t=10):
     return random.randint(0, t)
 
 
+def getrandomint(min_num, max_num):
+    l = []
+    for i in range(0,9):
+        l.append(random.randint(min_num, max_num))
+    r = random.choice(l)
+    #print("RANDOM: %s"%r)
+    return r
+
+
+def ip4to6(ipaddr):
+    prfx = "2401::"
+    prefix6to4 = int(ipaddress.IPv6Address(prfx))
+    try:
+        ip4 = ipaddress.IPv4Address(ipaddr)
+    except:
+        return ipaddr # Couldn't convert, so returning the ip4 address
+    ip6 = ipaddress.IPv6Address(prefix6to4 | (int(ip4) << 80))
+    return ip6
+
+
 def createrequestcontext():
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -107,6 +128,7 @@ class AmazonBot(object):
         self.logging = True
         self.apikey = apikey
         self.proxies = proxies
+        self.selectedproxy = ""
         self.response = None # This would a response object from Amazon API
         self.content = None # This could be a text chunk or a binary data (like a Podcast content)
         self.podclient = podcast_api.Client(api_key=self.apikey)
@@ -161,9 +183,16 @@ class AmazonBot(object):
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
-            httpsrandomctr = random.randint(0, httpsproxycount)
+            httpsrandomctr = getrandomint(0, httpsproxycount-1)
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            proxparts = self.proxies['https'][httpsrandomctr].split("//")
+            if proxparts.__len__() > 1:
+                self.selectedproxy = proxparts[1].split(":")[0]
+            else:
+                self.selectedproxy = proxparts[0].split(":")[0]
+            if self.DEBUG:
+                print("Proxy used (Amazon): %s"%self.proxies['https'][httpsrandomctr])
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
@@ -174,7 +203,17 @@ class AmazonBot(object):
         self.httpopener = self.buildopenerrandomproxy()
         self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
         session = HTMLSession()
-        self.httpresponse = session.get(requrl)
+        if self.proxies['https'].__len__() > 0:
+            httpsproxycount = self.proxies['https'].__len__() - 1
+            httpsrandomctr = getrandomint(0, httpsproxycount-1)
+            try:
+                self.httpresponse = session.get(requrl, proxies={'https': self.proxies['https'][httpsrandomctr]})
+                if self.DEBUG:
+                    print("Proxy used (Amazon): %s"%self.proxies['https'][httpsrandomctr])
+            except:
+                self.httpresponse = session.get(requrl)
+        else:
+            self.httpresponse = session.get(requrl)
         return self.httpresponse
 
 
@@ -339,7 +378,7 @@ class AmazonBot(object):
 
 
     def existsincontent(self, regexpattern):
-        content = self.httpcontent
+        content = str(self.httpcontent)
         if re.search(regexpattern, content):
             return True
         return False
@@ -350,7 +389,9 @@ class AmazonBot(object):
         siteurlparts = siteurl.split("/")
         siteurl = "/" + "/".join(siteurlparts[3:])
         ts = int(time.time() * 1000)
-        httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'content-encoding' : 'amz-1.0', 'content-type' : 'application/json; charset=UTF-8', 'origin' : 'https://music.amazon.com', 'pragma' : 'no-cache', 'referer' : siteurl, 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'same-origin', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amz-target' : 'com.amazon.dmpbrowsevisualservice.skills.DMPBrowseVisualService.ShowPodcastWebSkill', 'x-amzn-requestid' : ''}
+        amzrequestid = "435c30ee-1152-4ec2-a192-15270b4e4375"
+        requestidentityid = "8ec94331-bd47-43ff-87cd-21897b2e8195"
+        httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'content-encoding' : 'amz-1.0', 'content-type' : 'application/json; charset=UTF-8', 'origin' : 'https://music.amazon.com', 'pragma' : 'no-cache', 'referer' : siteurl, 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'same-origin', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amz-target' : 'com.amazon.dmpbrowsevisualservice.skills.DMPBrowseVisualService.ShowPodcastWebSkill', 'x-amzn-requestid' : amzrequestid}
         httpheaders['cookie'] = ""
         httpheaders['cookie'] += self.httpheaders['cookie']
         self.httpopener = self.buildopenerrandomproxy()
@@ -358,9 +399,9 @@ class AmazonBot(object):
             datadict = {"preset":"{\"id\":\"%s\",\"nextToken\":null}"%urlid,"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"","sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"},"hidePromptPreference":{"preferenceMap":{},"__type":"Podcast.FollowPromptInterface.v1_0#HidePromptPreferenceClientState"}},"extra":{}}
         else:
             httpheaders['x-amz-target'] = "com.amazon.dmpplaybackvisualservice.skills.DMPPlaybackVisualService.PlayPodcastWebSkill"
-            datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"","sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}},"extra":{}}
+            datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"%s"%requestidentityid,"sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}},"extra":{}}
         postdata = json.dumps(datadict).encode('utf-8')
-        #print(postdata)
+        print(datadict)
         httpheaders['content-length'] = postdata.__len__()
         requrl = "https://music.amazon.com/EU/api/podcast/browse/visual"
         if mediaflag == 0:
@@ -458,9 +499,11 @@ class SpotifyBot(object):
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
-            httpsrandomctr = random.randint(0, httpsproxycount)
+            httpsrandomctr = getrandomint(0, httpsproxycount-1)
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            if self.DEBUG:
+                print("Proxy used (Spotify): %s"%self.proxies['https'][httpsrandomctr])
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
@@ -533,7 +576,7 @@ class SpotifyBot(object):
 
 
     def existsincontent(self, regexpattern):
-        content = self.httpcontent
+        content = str(self.httpcontent)
         if re.search(regexpattern, content):
             return True
         return False
@@ -655,9 +698,11 @@ class AppleBot(object):
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
-            httpsrandomctr = random.randint(0, httpsproxycount)
+            httpsrandomctr = getrandomint(0, httpsproxycount-1)
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler, NoRedirectHandler())
+            if self.DEBUG:
+                print("Proxy used (Apple): %s"%self.proxies['https'][httpsrandomctr])
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, NoRedirectHandler())
@@ -832,7 +877,7 @@ class BuzzBot(object):
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
-            httpsrandomctr = random.randint(0, httpsproxycount)
+            httpsrandomctr = getrandomint(0, httpsproxycount-1)
             self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
             if self.logging:
@@ -1113,6 +1158,7 @@ class BuzzBot(object):
             while ctr < targetcount:
                 ambot.makehttprequest(siteurl)
                 ambot.gethttpresponsecontent()
+                proxyip = ambot.selectedproxy
                 devicetypepattern = re.compile("\"deviceType\"\:\s*\"([^\"]+)\",", re.DOTALL)
                 deviceidpattern = re.compile("\"deviceId\"\:\s*\"([^\"]+)\",", re.DOTALL)
                 faviconpattern = re.compile("\"faviconUrl\"\:\s*\"([^\"]+)\",", re.DOTALL)
@@ -1150,6 +1196,8 @@ class BuzzBot(object):
                     csrfts = css.groups()[0]
                 if crs:
                     csrfrnd = crs.groups()[0]
+                #ipaddr = ip4to6(proxyip)
+                ipaddr = proxyip
                 paramstuple = (urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl)
                 if self.logging:
                     self.logger.write("Amazon 'visual' url first request parameters:\n urlid: %s\nsession Id: %s\nipaddr: %s\ncsrftoken: %s\ncsrfts: %s\ncsrfrnd: %s\ndevid: %s\ndevtype: %s\n"%(urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype))
@@ -1212,6 +1260,9 @@ class BuzzBot(object):
                         csrfts = css.groups()[0]
                     if crs:
                         csrfrnd = crs.groups()[0]
+                    proxyip = ambot.selectedproxy
+                    #ipaddr = ip4to6(proxyip)
+                    ipaddr = proxyip
                     params = (urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, eurl)
                     mediaidpattern = re.compile("\"mediaId\"\:\"(https:\/\/[^\"]+)\",", re.DOTALL)
                     mflag = 1
@@ -1488,7 +1539,7 @@ class GUI(object):
         proxiestext = self.proxytext.get('1.0', 'end-1c')
         proxieslines = proxiestext.split("\n")
         self.proxieslist = []
-        self.proxypattern = re.compile("^https\:\/\/\d+\.\d+\.\d+\.\d+\:\d+$", re.IGNORECASE)
+        self.proxypattern = re.compile("^https\:\/\/\d+\.\d+\.\d+\.\d+\:\d+", re.IGNORECASE)
         for line in proxieslines:
             if not re.search(self.proxypattern, line):
                 continue
