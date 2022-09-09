@@ -4,8 +4,8 @@ import random
 import shutil
 
 import subprocess
-from multiprocessing import Process, Pool, Queue
 from threading import Thread
+import signal
 
 import socks
 import socket
@@ -399,9 +399,10 @@ class AmazonBot(object):
             datadict = {"preset":"{\"id\":\"%s\",\"nextToken\":null}"%urlid,"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"","sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"},"hidePromptPreference":{"preferenceMap":{},"__type":"Podcast.FollowPromptInterface.v1_0#HidePromptPreferenceClientState"}},"extra":{}}
         else:
             httpheaders['x-amz-target'] = "com.amazon.dmpplaybackvisualservice.skills.DMPPlaybackVisualService.PlayPodcastWebSkill"
+            httpheaders['cookie'] += " referrer_session={%22full_referrer%22:%22https://developer.amazon.com/en-US/docs/alexa/music-skills/audio-catalog-reference.html%22}; s_nr=1661573929087-New; s_lv=1661573929088; AMCVS_7742037254C95E840A4C98A6%40AdobeOrg=1; aws-ubid-main=482-3164172-1660452; aws-mkto-trk=id%3A112-TZM-766%26token%3A_mch-aws.amazon.com-1657275509942-54640; aws_lang=en; s_campaign=ps%7C32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-data=%7B%22support%22%3A%221%22%7D; s_eVar60=32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-visitor-id=1662458172618-844632.31_0;  regStatus=registered; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=fd772b08706faa75366f6dfeaf8882ecd58ed87be86bee84d2970db0053e8f75; AMCV_7742037254C95E840A4C98A6%40AdobeOrg=1585540135%7CMCIDTS%7C19243%7CMCMID%7C86123343969842436782305730671676825045%7CMCAAMLH-1663176902%7C12%7CMCAAMB-1663176902%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1662579302s%7CNONE%7CMCAID%7CNONE%7CMCSYNCSOP%7C411-19248%7CvVersion%7C4.4.0; s_sq=%5B%5BB%5D%5D; session-token=RLu67mQaxSowz1izN2xQADeJFmrvbiQvS8PTT2ZSXHiI9FcI6A7iId+bx4TKlkzUZctsaUpNVzGEikeX4V0Q4G6rXHS6WcnBHdPXCK/KZo2c2CVGJPmrUycxEYVUmrUwKC37Xy5QeqJVuqSOvWc6n4YZ1wIEl3+ln4aeM0MzKsM1HwPsYW+mkf6WXsXpTA2g"
             datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"%s"%requestidentityid,"sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}},"extra":{}}
         postdata = json.dumps(datadict).encode('utf-8')
-        print(datadict)
+        #print(datadict)
         httpheaders['content-length'] = postdata.__len__()
         requrl = "https://music.amazon.com/EU/api/podcast/browse/visual"
         if mediaflag == 0:
@@ -422,6 +423,11 @@ class AmazonBot(object):
             returndict = {}
         return returndict
 
+
+    def getpandatoken(self, devicetype, siteurl, sessid):
+        pandaurl = "https://music.amazon.com/horizonte/pandaToken?deviceType=%s"%devicetype
+        httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'pragma' : 'no-cache', 'referer' : siteurl, 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'same-origin', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'}
+        httpheaders['cookie'] = "session-id=" + sessid + "; session-id-time=" + sessidtime + ";referrer_session={%22full_referrer%22:%22https://developer.amazon.com/en-US/docs/alexa/music-skills/audio-catalog-reference.html%22}; s_nr=1661573929087-New; s_lv=1661573929088; AMCVS_7742037254C95E840A4C98A6%40AdobeOrg=1; aws-ubid-main=482-3164172-1660452; aws-mkto-trk=id%3A112-TZM-766%26token%3A_mch-aws.amazon.com-1657275509942-54640; aws_lang=en; s_campaign=ps%7C32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-data=%7B%22support%22%3A%221%22%7D; s_eVar60=32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-visitor-id=1662458172618-844632.31_0; aws-userInfo-signed=eyJ0eXAiOiJKV1MiLCJrZXlSZWdpb24iOiJ1cy1lYXN0LTEiLCJhbGciOiJFUzM4NCIsImtpZCI6IjNhYWFiODU3LTRlZjItNGRjNi1iOTEwLTI4Y2IwYmZiNDM3ZSJ9.eyJzdWIiOiIiLCJzaWduaW5UeXBlIjoiUFVCTElDIiwiaXNzIjoiaHR0cDpcL1wvc2lnbmluLmF3cy5hbWF6b24uY29tXC9zaWduaW4iLCJrZXliYXNlIjoiQUdiWTVKSzVQaTFxQ2s1VmR5ejhSNGZyYlNXVVhVTFFYVHFEMXhuUXMwVT0iLCJhcm4iOiJhcm46YXdzOmlhbTo6Mjk0NDkzMjA0ODg4OnJvb3QiLCJ1c2VybmFtZSI6IlN1cHJpeW8lMjBNaXRyYSJ9.RdfusHue4PHjvhniToFjgv47lq7gBj25BD9jg1f0XZK80KOlOAVmRDksKHf_PKnWmg6CIWm-eDrxnt4XayYkSCaYbi6pzLZqD-y1wYH509X-oobfqhvPTTWvFtQiqoaU; aws-userInfo=%7B%22arn%22%3A%22arn%3Aaws%3Aiam%3A%3A294493204888%3Aroot%22%2C%22alias%22%3A%22%22%2C%22username%22%3A%22Supriyo%2520Mitra%22%2C%22keybase%22%3A%22AGbY5JK5Pi1qCk5Vdyz8R4frbSWUXULQXTqD1xnQs0U%5Cu003d%22%2C%22issuer%22%3A%22http%3A%2F%2Fsignin.aws.amazon.com%2Fsignin%22%2C%22signinType%22%3A%22PUBLIC%22%7D; regStatus=registered; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=fd772b08706faa75366f6dfeaf8882ecd58ed87be86bee84d2970db0053e8f75; AMCV_7742037254C95E840A4C98A6%40AdobeOrg=1585540135%7CMCIDTS%7C19243%7CMCMID%7C86123343969842436782305730671676825045%7CMCAAMLH-1663176902%7C12%7CMCAAMB-1663176902%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1662579302s%7CNONE%7CMCAID%7CNONE%7CMCSYNCSOP%7C411-19248%7CvVersion%7C4.4.0; s_sq=%5B%5BB%5D%5D; session-token=AyaMaSdbKRG0qlbJFw66kU9hNuHmJZvgq1y5n5wlB5aKmlMJH5zl0SvaHiwQZrWmbz/K0j+Ri0TVnCRQPcdzHkJlN+u9enmLm0U2m2loy+tFmwcnhVmWwMif3ocZsj2gXcOTlB2Vu7BnTS9jcbYxcJELyZv4qpov+kBNIycZ8uI55zyBK1YZKW7agE41/q5i"
 
 
 class SpotifyBot(object):
@@ -1033,7 +1039,6 @@ class BuzzBot(object):
                 applebot.makehttprequest(siteurl)
                 applebot.gethttpresponsecontent()
                 podcastlinks = applebot.listpodcastsonpage()
-                ctr = 0
                 if self.DEBUG:
                     print("APPLE ITERATION #%s ======================="%ctr)
                 if self.logging:
@@ -1496,6 +1501,11 @@ class GUI(object):
             return False
 
 
+    # Signal handler to handle ctrl+c interrupt
+    def handler(self, signum, frame):
+        print("Terminating all threads...")
+        exit(1)
+
 
     def startbot(self):
         self.targeturl = self.targeturlentry.get()
@@ -1559,6 +1569,7 @@ class GUI(object):
         self.rt.start()
         self.messagelabel.configure(foreground="green", width=400)
         self.msglabeltext.set("Operation in progress...\nAPPLE: 0\nAMAZON: 0\nSPOTIFY: 0")
+        signal.signal(signal.SIGINT, self.handler)
         # ... and return to user
         return True
 
@@ -1616,9 +1627,11 @@ class GUI(object):
 
 
     def stopbot(self):
-        if self.rt is not None:
-            self.rt.join()
-        return None
+        if os.name == 'posix':
+            signal.SIGINT # On linux or macOSX
+        else:
+            signal.CTRL_C_EVENT # On windows family
+        self.closebot()
 
 
 
