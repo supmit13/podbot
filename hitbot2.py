@@ -96,8 +96,8 @@ def getrandomalphabet():
 
 def getrandomalphanumeric():
     l = ['0', '1', '2', '3', '4', '5','6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
-    a = l[random.randint(0, 25)]
-    b = l[random.randint(0, 25)]
+    a = l[random.randint(0, 15)]
+    b = l[random.randint(0, 15)]
     return [a,b]
 
 
@@ -403,9 +403,14 @@ class AmazonBot(object):
         siteurl = "/" + "/".join(siteurlparts[3:])
         ts = int(time.time() * 1000)
         amzrequestid_seed = "435c30ee-1152-4ec2-a192-15270b4e4375"
+        #amzrequestid_seed = "9bc04d79-b0b8-42dc-b9cb-e66189e84cdc"
         requestidentityid_seed = "8ec94331-bd47-43ff-87cd-21897b2e8195"
         amzrequestid_list = list(amzrequestid_seed)
+        for ri in range(amzrequestid_list.__len__()):
+            amzrequestid_list[ri] = str(amzrequestid_list[ri])
         requestidentityid_list = list(requestidentityid_seed)
+        for ir in range(requestidentityid_list.__len__()):
+            requestidentityid_list[ir] = str(requestidentityid_list[ir])
         ablist = getrandomalphanumeric()
         randpos1 = random.randint(0, amzrequestid_list.__len__() - 1)
         randpos2 = random.randint(0, amzrequestid_list.__len__() - 1)
@@ -427,7 +432,7 @@ class AmazonBot(object):
             datadict = {"preset":"{\"id\":\"%s\",\"nextToken\":null}"%urlid,"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"","sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"},"hidePromptPreference":{"preferenceMap":{},"__type":"Podcast.FollowPromptInterface.v1_0#HidePromptPreferenceClientState"}},"extra":{}}
         else:
             httpheaders['x-amz-target'] = "com.amazon.dmpplaybackvisualservice.skills.DMPPlaybackVisualService.PlayPodcastWebSkill"
-            datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"%s"%requestidentityid,"sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}},"extra":{}}
+            datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"%s"%requestidentityid,"sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}}, "extra":{}}        
         postdata = json.dumps(datadict).encode('utf-8')
         seedsesstoken = "RLu67mQaxSowz1izN2xQADeJFmrvbiQvS8PTT2ZSXHiI9FcI6A7iId+bx4TKlkzUZctsaUpNVzGEikeX4V0Q4G6rXHS6WcnBHdPXCK/KZo2c2CVGJPmrUycxEYVUmrUwKC37Xy5QeqJVuqSOvWc6n4YZ1wIEl3+ln4aeM0MzKsM1HwPsYW+mkf6WXsXpTA2e"
         sesslist = list(seedsesstoken)
@@ -472,7 +477,8 @@ class AmazonBot(object):
         httpheaders['cookie'] = cookies + "session-token=" + sesstoken + ";"
         datetzpattern = re.compile("\d{2}\-[a-zA-Z]{3}\-\d{4}\s+\d{2}\:\d{2}\:\d{2}\s+GMT\s*;", re.IGNORECASE|re.DOTALL)
         httpheaders['cookie'] = datetzpattern.sub("", httpheaders['cookie'])
-        print(httpheaders['cookie'])
+        self.httpcookies = httpheaders['cookie']
+        #print(httpheaders['cookie'])
         httpheaders['content-length'] = postdata.__len__()
         requrl = "https://music.amazon.com/EU/api/podcast/browse/visual"
         if mediaflag == 0:
@@ -482,6 +488,74 @@ class AmazonBot(object):
             self.httprequest = urllib.request.Request(requrl, data=postdata, headers=httpheaders)
         try:
             self.httpresponse = self.httpopener.open(self.httprequest)
+        except:
+            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            return {}
+        returndata = _decodeGzippedContent(self.httpresponse.read())
+        try:
+            returndict = json.loads(returndata.encode('utf-8'))
+        except:
+            print("Error loading json data: %s"%(sys.exc_info()[1].__str__()))
+            returndict = {}
+        return returndict
+
+
+    def playbackstartedvisual(self, paramstuple, episodemp3, episodeid):
+        urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, siteurl = paramstuple[0], paramstuple[1], paramstuple[2], paramstuple[3], paramstuple[4], paramstuple[5], paramstuple[6], paramstuple[7], paramstuple[8]
+        siteurlparts = siteurl.split("/")
+        siteurl = "/" + "/".join(siteurlparts[3:])
+        ts = int(time.time() * 1000)
+        amzrequestid_seed = "435c30ee-1152-4ec2-a192-15270b4e4375"
+        #amzrequestid_seed = "9bc04d79-b0b8-42dc-b9cb-e66189e84cdc"
+        requestidentityid_seed = "8ec94331-bd47-43ff-87cd-21897b2e8195"
+        amzrequestid_list = list(amzrequestid_seed)
+        for ri in range(amzrequestid_list.__len__()):
+            amzrequestid_list[ri] = str(amzrequestid_list[ri])
+        requestidentityid_list = list(requestidentityid_seed)
+        for ir in range(requestidentityid_list.__len__()):
+            requestidentityid_list[ir] = str(requestidentityid_list[ir])
+        ablist = getrandomalphanumeric()
+        randpos1 = random.randint(0, amzrequestid_list.__len__() - 1)
+        randpos2 = random.randint(0, amzrequestid_list.__len__() - 1)
+        if amzrequestid_list[randpos1] != "-":
+            amzrequestid_list[randpos1] = ablist[0]
+        if amzrequestid_list[randpos2] != "-":
+            amzrequestid_list[randpos2] = ablist[1]
+        amzrequestid = ''.join(amzrequestid_list)
+        if requestidentityid_list[randpos1] != "-":
+            requestidentityid_list[randpos1] = ablist[0]
+        if requestidentityid_list[randpos2] != "-":
+            requestidentityid_list[randpos2] = ablist[1]
+        requestidentityid = ''.join(requestidentityid_list)
+        httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'content-encoding' : 'amz-1.0', 'content-type' : 'application/json; charset=UTF-8', 'origin' : 'https://music.amazon.com', 'pragma' : 'no-cache', 'referer' : siteurl, 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'same-origin', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amzn-requestid' : amzrequestid}
+        httpheaders['x-amz-target'] = "com.amazon.dmpplaybackvisualservice.skills.DMPPlaybackVisualService.ReportPlaybackMetricOperationsWebSkill"
+        t = int(time.time() * 1000)
+        pbrequested = t - 875467
+        pbstarted = t - 871522
+        updatedtime = t - 871508
+        opsid_seed = "8aa0b51c-7426-4957-9e1e-27b81b8249f0"
+        opsid_list = list(opsid_seed)
+        for o in range(len(opsid_list)):
+            opsid_list[o] = str(opsid_list[o])
+        ablist = getrandomalphanumeric()
+        randpos1 = random.randint(0, opsid_list.__len__() - 1)
+        randpos2 = random.randint(0, opsid_list.__len__() - 1)
+        if opsid_list[randpos1] != "-":
+            opsid_list[randpos1] = ablist[0]
+        if opsid_list[randpos2] != "-":
+            opsid_list[randpos2] = ablist[1]
+        opsid = ''.join(opsid_list)
+        playbackmetric = {"operations":[{"id":"%s"%opsid,"element":{"id":"%s"%episodeid,"mediaCollectionType":"PODCAST","playbackSignalType":"PLAYBACK_STARTED","currentProgressMilliseconds":0,"playbackRequestedAtTimestampMilliseconds":pbrequested,"metricsPreset":"","isMediaDownloaded":False,"currentPlaybackSpeed":1,"playbackStartOffsetMilliseconds":0,"playbackStartedAtTimestampMilliseconds":pbstarted,"initialPlaybackStartDelayMilliseconds":3945,"rebufferDurationMilliseconds":0,"rebufferCount":0,"pageType":"","audioUri":"%s"%episodemp3,"podcastShowVariantId":"","podcastEpisodeVariantId":"","__type":"Podcast.PlaybackMetricsInterface.v1_0#PlaybackMetricWriteElement","interface":"Podcast.Web.PlaybackMetricsInterface.PlaybackMetricWriteElement"},"condition":{"updatedTime":updatedtime,"__type":"SOAAppSyncInterface.v1_0#TimeConditionElement"},"__type":"SOAAppSyncInterface.v1_0#OperationElement"}],"__type":"Podcast.PlaybackMetricsInterface.v1_0#PlaybackMetricsOperationsClientState"}
+        datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"%s"%requestidentityid,"sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}}, "playbackMetric" : playbackmetric, "extra":{}}       
+        postdata = json.dumps(datadict).encode('utf-8')
+        httpheaders['cookie'] = self.httpcookies
+        httpheaders['content-length'] = postdata.__len__()
+        requrl = "https://music.amazon.com/NA/api/podcast/playback/visual"
+        self.httpopener = self.buildopenerrandomproxy()
+        self.httprequest = urllib.request.Request(requrl, data=postdata, headers=httpheaders)
+        try:
+            self.httpresponse = self.httpopener.open(self.httprequest)
+            print("Successfully made request to Amazon playback URL")
         except:
             print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
             return {}
@@ -1379,6 +1453,7 @@ class BuzzBot(object):
                         time.sleep(ht)
                     cookiestr = ambot.getpandatoken(devtype, eurl, cookies)
                     mediadict = ambot.getvisualdict(params, episodeids[ectr], mflag, cookies=cookiestr)
+                    #print(mediadict)
                     try:
                         content = str(mediadict['methods'][0]['content'])
                         #print(content)
@@ -1392,6 +1467,8 @@ class BuzzBot(object):
                         print("Error in extracting Amazon media links: %s"%sys.exc_info()[1].__str__())
                         if self.logging:
                             self.logger.write("Error in extracting Amazon media links: %s\n"%sys.exc_info()[1].__str__())
+                    # Need to hit "visual" url again, just to make the download count. This is insane.
+                    ambot.playbackstartedvisual(params, mediaurl, episodeids[ectr])
                     ectr += 1
                 if self.logging:
                     self.logger.write("Amazon media links: %s\n"%("\n".join(mediaurlslist),)) 
