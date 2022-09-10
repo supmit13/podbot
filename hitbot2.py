@@ -435,8 +435,19 @@ class AmazonBot(object):
         noflushsid_list[randpos1] = str(randval1)
         noflushsid_list[randpos2] = str(randval2)
         noflushsid = ''.join(noflushsid_list)
-        httpheaders['cookie'] = cookies + "at_check=true; AMCVS_4A8581745834114C0A495E2B%40AdobeOrg=1; _mkto_trk=id:365-EFI-026&token:_mch-amazon.com-1661573838751-32752; mbox=session#" + mboxsess_new + "#" + str(mboxtt) + "|PC#47a708d83a684d8d9abc1df36d931572.31_0#1724818727; s_nr=1661573929088-New; s_lv=1661573929089; aws-mkto-trk=id%3A112-TZM-766%26token%3A_mch-aws.amazon.com-1657275509942-54640; aws_lang=en; s_campaign=ps%7C32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-data=%7B%22support%22%3A%221%22%7D; s_eVar60=32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-visitor-id=" + str(targetvisitorid) + "-844632.31_0; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=;" + noflushsid + " AMCV_7742037254C95E840A4C98A6%40AdobeOrg=1585540135%7CMCIDTS%7C19243%7CMCMID%7C86123343969842436782305730671676825045%7CMCAAMLH-1663176902%7C12%7CMCAAMB-1663176902%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1662579302s%7CNONE%7CMCAID%7CNONE%7CMCSYNCSOP%7C411-19248%7CvVersion%7C4.4.0; s_sq=%5B%5BB%5D%5D; session-token=" + sesstoken + ";"
-        #httpheaders['cookie'] += cookies
+        # Cookies should not be repeated.
+        sesstokenpattern = re.compile("session\-token=[^;]+;", re.DOTALL)
+        ubidmainpattern = re.compile("ubid\-main=\d+\-\d+\-\d+;", re.DOTALL)
+        sessidpattern = re.compile("session\-id=[^;]+;", re.DOTALL)
+        sessidtimepattern = re.compile("session\-id\-time=[^;]+l;", re.DOTALL)
+        cookies = sesstokenpattern.sub("", cookies)
+        cookies = ubidmainpattern.sub("", cookies, 1)
+        cookies = sessidpattern.sub("", cookies, 1)
+        cookies = sessidtimepattern.sub("", cookies, 1)
+        httpheaders['cookie'] = cookies + "at_check=true; AMCVS_4A8581745834114C0A495E2B%40AdobeOrg=1; _mkto_trk=id:365-EFI-026&token:_mch-amazon.com-1661573838751-32752; mbox=session#" + mboxsess_new + "#" + str(mboxtt) + "|PC#47a708d83a684d8d9abc1df36d931572.31_0#1724818727; aws-target-visitor-id=" + str(targetvisitorid) + "-844632.31_0; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=" + noflushsid + "; s_sq=%5B%5BB%5D%5D; session-token=" + sesstoken + ";"
+        datetzpattern = re.compile("\d{2}\-[a-zA-Z]{3}\-\d{4}\s+\d{2}\:\d{2}\:\d{2}\s+GMT\s*;", re.IGNORECASE|re.DOTALL)
+        httpheaders['cookie'] = datetzpattern.sub("", httpheaders['cookie'])
+        print(httpheaders['cookie'])
         httpheaders['content-length'] = postdata.__len__()
         requrl = "https://music.amazon.com/EU/api/podcast/browse/visual"
         if mediaflag == 0:
