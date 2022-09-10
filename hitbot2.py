@@ -94,6 +94,13 @@ def getrandomalphabet():
     return [x,y]
 
 
+def getrandomalphanumeric():
+    l = ['0', '1', '2', '3', '4', '5','6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+    a = l[random.randint(0, 25)]
+    b = l[random.randint(0, 25)]
+    return [a,b]
+
+
 def ip4to6(ipaddr):
     prfx = "2401::"
     prefix6to4 = int(ipaddress.IPv6Address(prfx))
@@ -395,8 +402,23 @@ class AmazonBot(object):
         siteurlparts = siteurl.split("/")
         siteurl = "/" + "/".join(siteurlparts[3:])
         ts = int(time.time() * 1000)
-        amzrequestid = "435c30ee-1152-4ec2-a192-15270b4e4375"
-        requestidentityid = "8ec94331-bd47-43ff-87cd-21897b2e8195"
+        amzrequestid_seed = "435c30ee-1152-4ec2-a192-15270b4e4375"
+        requestidentityid_seed = "8ec94331-bd47-43ff-87cd-21897b2e8195"
+        amzrequestid_list = list(amzrequestid_seed)
+        requestidentityid_list = list(requestidentityid_seed)
+        ablist = getrandomalphanumeric()
+        randpos1 = random.randint(0, amzrequestid_list.__len__() - 1)
+        randpos2 = random.randint(0, amzrequestid_list.__len__() - 1)
+        if amzrequestid_list[randpos1] != "-":
+            amzrequestid_list[randpos1] = ablist[0]
+        if amzrequestid_list[randpos2] != "-":
+            amzrequestid_list[randpos2] = ablist[1]
+        amzrequestid = ''.join(amzrequestid_list)
+        if requestidentityid_list[randpos1] != "-":
+            requestidentityid_list[randpos1] = ablist[0]
+        if requestidentityid_list[randpos2] != "-":
+            requestidentityid_list[randpos2] = ablist[1]
+        requestidentityid = ''.join(requestidentityid_list)
         httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'content-encoding' : 'amz-1.0', 'content-type' : 'application/json; charset=UTF-8', 'origin' : 'https://music.amazon.com', 'pragma' : 'no-cache', 'referer' : siteurl, 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'same-origin', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amz-target' : 'com.amazon.dmpbrowsevisualservice.skills.DMPBrowseVisualService.ShowPodcastWebSkill', 'x-amzn-requestid' : amzrequestid}
         httpheaders['cookie'] = ""
         httpheaders['cookie'] += self.httpheaders['cookie']
@@ -407,7 +429,7 @@ class AmazonBot(object):
             httpheaders['x-amz-target'] = "com.amazon.dmpplaybackvisualservice.skills.DMPPlaybackVisualService.PlayPodcastWebSkill"
             datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"%s"%requestidentityid,"sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}},"extra":{}}
         postdata = json.dumps(datadict).encode('utf-8')
-        seedsesstoken = "SLu67mQaxSowz1izN2xQADeJFmrvbiQvS8PTT2ZSXHiI9FcI6A7iId+bx4TKlkzUZctsaUpNVzGEikeX4V0Q4G6rXHS6WcnBHdPXCK/KZo2c2CVGJPmrUycxEYVUmrUwKC37Xy5QeqJVuqSOvWc6n4YZ1wIEl3+ln4aeM0MzKsM1HwPsYW+mkf6WXsXpTA2f"
+        seedsesstoken = "RLu67mQaxSowz1izN2xQADeJFmrvbiQvS8PTT2ZSXHiI9FcI6A7iId+bx4TKlkzUZctsaUpNVzGEikeX4V0Q4G6rXHS6WcnBHdPXCK/KZo2c2CVGJPmrUycxEYVUmrUwKC37Xy5QeqJVuqSOvWc6n4YZ1wIEl3+ln4aeM0MzKsM1HwPsYW+mkf6WXsXpTA2e"
         sesslist = list(seedsesstoken)
         xylist = getrandomalphabet()
         randpos1 = random.randint(0, sesslist.__len__() - 1)
@@ -415,6 +437,7 @@ class AmazonBot(object):
         sesslist[randpos1] = xylist[0]
         sesslist[randpos2] = xylist[1]
         sesstoken = ''.join(sesslist)
+        """
         mboxsess_seed = "47a708d83a684d8d9abc1df36d931572"
         mboxlist = list(mboxsess_seed)
         randpos1 = random.randint(0, mboxlist.__len__() - 1)
@@ -422,8 +445,8 @@ class AmazonBot(object):
         mboxlist[randpos1] = xylist[0]
         mboxlist[randpos2] = xylist[1]
         mboxsess_new = ''.join(mboxlist)
-        mboxtt = 1661575787 + 1
-        targetvisitorid = 1662458172619 + 1
+        mboxtt = 1661575787 + randpos1 # Needed a random number to add
+        targetvisitorid = 1662458172619 + randpos2 # Same as above
         noflushsid_seed = "fd772b08706faa75366f6dfeaf8882ecd58ed87be86bee84d2970db0053e8f75"
         noflushsid_list = list(noflushsid_seed)
         for i in range(len(noflushsid_list)):
@@ -435,6 +458,7 @@ class AmazonBot(object):
         noflushsid_list[randpos1] = str(randval1)
         noflushsid_list[randpos2] = str(randval2)
         noflushsid = ''.join(noflushsid_list)
+        """
         # Cookies should not be repeated.
         sesstokenpattern = re.compile("session\-token=[^;]+;", re.DOTALL)
         ubidmainpattern = re.compile("ubid\-main=\d+\-\d+\-\d+;", re.DOTALL)
@@ -444,7 +468,8 @@ class AmazonBot(object):
         cookies = ubidmainpattern.sub("", cookies, 1)
         cookies = sessidpattern.sub("", cookies, 1)
         cookies = sessidtimepattern.sub("", cookies, 1)
-        httpheaders['cookie'] = cookies + "at_check=true; AMCVS_4A8581745834114C0A495E2B%40AdobeOrg=1; _mkto_trk=id:365-EFI-026&token:_mch-amazon.com-1661573838751-32752; mbox=session#" + mboxsess_new + "#" + str(mboxtt) + "|PC#47a708d83a684d8d9abc1df36d931572.31_0#1724818727; aws-target-visitor-id=" + str(targetvisitorid) + "-844632.31_0; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=" + noflushsid + "; s_sq=%5B%5BB%5D%5D; session-token=" + sesstoken + ";"
+        #httpheaders['cookie'] = cookies + "at_check=true; AMCVS_4A8581745834114C0A495E2B%40AdobeOrg=1; _mkto_trk=id:365-EFI-026&token:_mch-amazon.com-1661573838751-32752; mbox=session#" + mboxsess_new + "#" + str(mboxtt) + "|PC#47a708d83a684d8d9abc1df36d931572.31_0#1724818727; aws-target-visitor-id=" + str(targetvisitorid) + "-844634.30_0; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=" + noflushsid + "; s_sq=%5B%5BB%5D%5D; session-token=" + sesstoken + ";"
+        httpheaders['cookie'] = cookies + "session-token=" + sesstoken + ";"
         datetzpattern = re.compile("\d{2}\-[a-zA-Z]{3}\-\d{4}\s+\d{2}\:\d{2}\:\d{2}\s+GMT\s*;", re.IGNORECASE|re.DOTALL)
         httpheaders['cookie'] = datetzpattern.sub("", httpheaders['cookie'])
         print(httpheaders['cookie'])
