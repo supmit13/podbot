@@ -604,6 +604,26 @@ class AmazonBot(object):
         return cookiestr
 
 
+    def clearmusicqueuerequest(self, csrftoken, csrfts, deviceid, episodeurl, rnd, sessid, podcastdomain):
+        ts = int(time.time() * 1000)
+        httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'pragma' : 'no-cache', 'referer' : 'https://music.amazon.com/', 'origin' : 'https://music.amazon.com', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'cross-site', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'content-type' : 'text/plain;charset=UTF-8', 'content-length' : '2', 'x-amzn-affiliate-tags' : '', 'x-amzn-application-version' : '1.0.10995.0', 'x-amzn-authentication' : '{"interface":"ClientAuthenticationInterface.v1_0.ClientTokenElement","accessToken":""}', 'x-amzn-csrf' : '{"interface":"CSRFInterface.v1_0.CSRFHeaderElement","token":"%s","timestamp":"%s","rndNonce":"%s"}'%(csrftoken, csrfts, rnd), 'x-amzn-currency-of-preference' : 'USD', 'x-amzn-device-family' : 'WebPlayer', 'x-amzn-device-height' : '1080', 'x-amzn-device-id' : deviceid, 'x-amzn-device-language' : 'en-US', 'x-amzn-device-model' : 'WEBPLAYER', 'x-amzn-device-time-zone' : 'Asia/Calcutta', 'x-amzn-device-width' : '1920', 'x-amzn-feature-flags' : '', 'x-amzn-music-domain' : 'music.amazon.com', 'x-amzn-os-version' : '1.0', 'x-amzn-page-url' : episodeurl, 'x-amzn-ref-marker' : '', 'x-amzn-referer' : podcastdomain, 'x-amzn-request-id' : '5d365441-7cb5-408f-ac6b-4d30ec8eb5c1', 'x-amzn-session-id' : sessid, 'x-amzn-timestamp' : ts, 'x-amzn-user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amzn-video-player-token' : '', 'x-amzn-weblab-id-overrides' : ''}
+        requesturl = 'https://na.mesk.skill.music.a2z.com/api/clearMusicQueue'
+        amzopener = self.buildopenerrandomproxy()
+        payload = b"{}"
+        amzrequest = urllib.request.Request(requesturl, data=payload, headers=httpheaders)
+        try:
+            amzresponse = amzopener.open(amzrequest)
+        except:
+            amzresponse = None
+            print("clearmusicqueue request failed: %s"%sys.exc_info()[1].__str__())
+        # We don't expect any meaningful data from this request. This is simply to make our masquerade look genuine
+        if amzresponse is not None:
+            print("Successfully made clearmusicqueue request")
+        else:
+            print("clearmusicqueue request failed. See error above.")
+        return None
+
+
 class SpotifyBot(object):
     
     def __init__(self, client_id, client_secret, proxies):
@@ -1322,6 +1342,8 @@ class BuzzBot(object):
                 print("Amazon: %s"%siteurl)
             if self.logging:
                 self.logger.write("Amazon URL: %s\n"%siteurl)
+            podcastmainurlparts = siteurl.split("/")
+            podcastdomain = podcastmainurlparts[2]
             ambot.DEBUG = self.DEBUG
             ambot.humanize = self.humanize
             ambot.logging = self.logging
@@ -1469,6 +1491,7 @@ class BuzzBot(object):
                             self.logger.write("Error in extracting Amazon media links: %s\n"%sys.exc_info()[1].__str__())
                     # Need to hit "visual" url again, just to make the download count. This is insane.
                     ambot.playbackstartedvisual(params, mediaurl, episodeids[ectr])
+                    ambot.clearmusicqueuerequest(csrftoken, csrfts, devid, eurl, csrfrnd, sessid, podcastdomain)
                     ectr += 1
                 if self.logging:
                     self.logger.write("Amazon media links: %s\n"%("\n".join(mediaurlslist),)) 
@@ -1487,7 +1510,18 @@ class BuzzBot(object):
                     if self.humanize:
                         ht = getrandominterval(5)
                         time.sleep(ht)
-                    response = ambot.makehttprequest(mediaurl)
+                    #response = ambot.makehttprequest(mediaurl)
+                    amzopener = ambot.buildopenerrandomproxy()
+                    amzrequest = urllib.request.Request(mediaurl, headers=ambot.httpheaders)
+                    try:
+                        response = amzopener.open(amzrequest)
+                    except:
+                        print("Error fetching media for Amazon podcast: %s"%sys.exc_info()[1].__str__())
+                        response = None
+                    if self.DEBUG:
+                        print("Getting mp3 from Amazon: %s"%mediaurl)
+                    if self.logging:
+                        self.logger.write("Getting mp3 from Amazon: %s"%mediaurl)
                     AMAZON_HIT_STAT += 1
                     curmessagecontent = self.msglabeltext.get()
                     replacementmessage = "AMAZON: %s"%AMAZON_HIT_STAT
@@ -1497,9 +1531,12 @@ class BuzzBot(object):
                         self.logger.write("Fetched Amazon URL: %s\n"%mediaurl)
                     if self.DEBUG:
                         t = str(int(time.time() * 1000))
-                        fa = open(self.dumpdir + os.path.sep + "amazon_%s.mp3"%t, "wb")
-                        fa.write(response.content)
-                        fa.close()
+                        if response is not None:
+                            fa = open(self.dumpdir + os.path.sep + "amazon_%s.mp3"%t, "wb")
+                            fa.write(response.read())
+                            fa.close()
+                        else:
+                            print("Couldn't read response from Amazon mp3 media URL.")
                     else:
                         pass
                 ctr += 1
