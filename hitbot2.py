@@ -142,6 +142,7 @@ class AmazonBot(object):
         self.apikey = apikey
         self.proxies = proxies
         self.selectedproxy = ""
+        self.selectedproxyport = "3128"
         self.response = None # This would a response object from Amazon API
         self.content = None # This could be a text chunk or a binary data (like a Podcast content)
         self.podclient = podcast_api.Client(api_key=self.apikey)
@@ -202,8 +203,10 @@ class AmazonBot(object):
             proxparts = self.proxies['https'][httpsrandomctr].split("//")
             if proxparts.__len__() > 1:
                 self.selectedproxy = proxparts[1].split(":")[0]
+                self.selectedproxyport = proxparts[1].split(":")[1]
             else:
                 self.selectedproxy = proxparts[0].split(":")[0]
+                self.selectedproxyport = proxparts[0].split(":")[1]
             if self.DEBUG:
                 print("Proxy used (Amazon): %s"%self.proxies['https'][httpsrandomctr])
         except:
@@ -606,7 +609,19 @@ class AmazonBot(object):
 
     def clearmusicqueuerequest(self, csrftoken, csrfts, deviceid, episodeurl, rnd, sessid, podcastdomain):
         ts = int(time.time() * 1000)
-        httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'pragma' : 'no-cache', 'referer' : 'https://music.amazon.com/', 'origin' : 'https://music.amazon.com', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'cross-site', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'content-type' : 'text/plain;charset=UTF-8', 'content-length' : '2', 'x-amzn-affiliate-tags' : '', 'x-amzn-application-version' : '1.0.10995.0', 'x-amzn-authentication' : '{"interface":"ClientAuthenticationInterface.v1_0.ClientTokenElement","accessToken":""}', 'x-amzn-csrf' : '{"interface":"CSRFInterface.v1_0.CSRFHeaderElement","token":"%s","timestamp":"%s","rndNonce":"%s"}'%(csrftoken, csrfts, rnd), 'x-amzn-currency-of-preference' : 'USD', 'x-amzn-device-family' : 'WebPlayer', 'x-amzn-device-height' : '1080', 'x-amzn-device-id' : deviceid, 'x-amzn-device-language' : 'en-US', 'x-amzn-device-model' : 'WEBPLAYER', 'x-amzn-device-time-zone' : 'Asia/Calcutta', 'x-amzn-device-width' : '1920', 'x-amzn-feature-flags' : '', 'x-amzn-music-domain' : 'music.amazon.com', 'x-amzn-os-version' : '1.0', 'x-amzn-page-url' : episodeurl, 'x-amzn-ref-marker' : '', 'x-amzn-referer' : podcastdomain, 'x-amzn-request-id' : '5d365441-7cb5-408f-ac6b-4d30ec8eb5c1', 'x-amzn-session-id' : sessid, 'x-amzn-timestamp' : ts, 'x-amzn-user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amzn-video-player-token' : '', 'x-amzn-weblab-id-overrides' : ''}
+        amzreqid_seed = "5d365441-7cb5-408f-ac6b-4d30ec8eb5c1"
+        amzreqid_list = list(amzreqid_seed)
+        ablist = getrandomalphanumeric()
+        randpos1 = random.randint(0, amzreqid_list.__len__() - 1)
+        randpos2 = random.randint(0, amzreqid_list.__len__() - 1)
+        if amzreqid_list[randpos1] == "-":
+            randpos1 += 1
+        if amzreqid_list[randpos2] == "-":
+            randpos2 += 1
+        amzreqid_list[randpos1] = ablist[0]
+        amzreqid_list[randpos2] = ablist[1]
+        amzreqid = ''.join(amzreqid_list)
+        httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'pragma' : 'no-cache', 'referer' : 'https://music.amazon.com/', 'origin' : 'https://music.amazon.com', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'cross-site', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'content-type' : 'text/plain;charset=UTF-8', 'content-length' : '2', 'x-amzn-affiliate-tags' : '', 'x-amzn-application-version' : '1.0.10995.0', 'x-amzn-authentication' : '{"interface":"ClientAuthenticationInterface.v1_0.ClientTokenElement","accessToken":""}', 'x-amzn-csrf' : '{"interface":"CSRFInterface.v1_0.CSRFHeaderElement","token":"%s","timestamp":"%s","rndNonce":"%s"}'%(csrftoken, csrfts, rnd), 'x-amzn-currency-of-preference' : 'USD', 'x-amzn-device-family' : 'WebPlayer', 'x-amzn-device-height' : '1080', 'x-amzn-device-id' : deviceid, 'x-amzn-device-language' : 'en-US', 'x-amzn-device-model' : 'WEBPLAYER', 'x-amzn-device-time-zone' : 'Asia/Calcutta', 'x-amzn-device-width' : '1920', 'x-amzn-feature-flags' : '', 'x-amzn-music-domain' : 'music.amazon.com', 'x-amzn-os-version' : '1.0', 'x-amzn-page-url' : episodeurl, 'x-amzn-ref-marker' : '', 'x-amzn-referer' : podcastdomain, 'x-amzn-request-id' : '%s'%amzreqid, 'x-amzn-session-id' : sessid, 'x-amzn-timestamp' : ts, 'x-amzn-user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'x-amzn-video-player-token' : '', 'x-amzn-weblab-id-overrides' : ''}
         requesturl = 'https://na.mesk.skill.music.a2z.com/api/clearMusicQueue'
         amzopener = self.buildopenerrandomproxy()
         payload = b"{}"
@@ -689,7 +704,8 @@ class SpotifyBot(object):
         hh = d.strftime("%H")
         mm = d.strftime("%M")
         ss = d.strftime("%S")
-        self.httpheaders['cookie'] = "sss=1; sp_m=in-en; _cs_c=0; sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1661618190878%3B1661621393364%3B8%3B35; OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
+        self.httpheaders['cookie'] = "sss=1; sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1663020058642%3B1663020058642%3B13%3B42;OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
+        #self.httpheaders['cookie'] = "sss=1; sp_adid=dab9886a-26b8-426c-b587-4deafa6317d6; sp_m=in-en; _gcl_au=1.1.769434751.1660164171; _cs_c=0; _scid=357dc4b2-eaa2-47c7-9f9a-9e2cbe9b7d5a; _fbp=fb.1.1660164171920.249213084; _sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z; sp_phash=a2c17ae575b28126b4c5aa2b5fd872d2d196352e; sp_gaid=0088fcade00809beb262d750ca91434142a10eb4a69cbdff9c7404; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D; sp_t=a2f20bfc3a23619df074952c61af1c0f; sp_last_utm=%7B%22utm_campaign%22%3A%22your_account%22%2C%22utm_medium%22%3A%22menu%22%2C%22utm_source%22%3A%22spotify%22%7D; _cs_id=2e855292-0381-a776-8bb4-d86b89592613.1660164171.2.1660415644.1660415644.1.1694328171610; _ga_S35RN5WNT2=GS1.1.1660415644.2.1.1660415662.42; sss=1; sp_landing=https%3A%2F%2Fopen.spotify.com%2Fservice-worker.js.map%3Fsp_cid%3Da2f20bfc3a23619df074952c61af1c0f%26device%3Ddesktop; _gid=GA1.2.1290307347.1663020057; _ga_ZWG1NSHWD8=GS1.1.1663020057.27.0.1663020057.0.0.0; OptanonConsent=isIABGlobal=false&datestamp=Tue+Sep+13+2022+03%3A30%3A57+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; ki_t=1660164170739%3B1663020058642%3B1663020058642%3B13%3B42; ki_r=; _ga=GA1.2.190256731.1660163979"
         if self.DEBUG:
             print("Cookie Sent: %s"%self.httpheaders['cookie'])
         
@@ -785,6 +801,10 @@ class SpotifyBot(object):
     def getepisodemp3url(self, episodeid, accesstoken, clienttoken):
         episodeurl = "https://spclient.wg.spotify.com/soundfinder/v1/unauth/episode/%s/com.widevine.alpha?market=IN"%episodeid
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken, 'app-platform' : 'WebPlayer'}
+        if self.DEBUG:
+            print("Spotify Episode URL: %s"%episodeurl)
+            print("Spotify Access Token: %s"%accesstoken)
+            print("Spotify Client Token: %s"%clienttoken)
         self.httpopener = self.buildopenerrandomproxy()
         epinforequest = urllib.request.Request(episodeurl, headers=httpheaders)
         try:
@@ -840,7 +860,9 @@ class SpotifyBot(object):
 
 
     def getepisode(self, epurl):
-        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Cookie' : self.httpheaders['cookie']}
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity;q=1, *;q=0', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'no-cors', 'Sec-Fetch-Dest' : 'audio', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'range' : 'bytes=0-', 'Cookie' : self.httpheaders['cookie']}
+        if self.DEBUG:
+            print("Spotify Cookie: %s"%self.httpheaders['cookie'])
         self.makehttprequest(epurl, headers=httpheaders)
         content = self.httpresponse.read() # Actually, we don't need the content.
         return content
@@ -880,7 +902,7 @@ class AppleBot(object):
             self.randomproxyopener = self.buildopenerrandomproxy()
         else:
             self.randomproxyopener = None
-        self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Keep-Alive' : '115', 'Connection' : 'keep-alive', }
+        self.httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-us,en;q=0.5', 'Accept-Encoding' : 'gzip,deflate', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Connection' : 'keep-alive', }
         self.httpheaders['cache-control'] = "max-age=0"
         self.httpheaders['upgrade-insecure-requests'] = "1"
         self.httpheaders['sec-fetch-dest'] = "document"
@@ -988,7 +1010,7 @@ class AppleBot(object):
             else:
                 mediaurl = ""
         except:
-            print("Error getting MediaURL from '%s': %s"%(location, sys.exc_info()[1].__str__()))
+            print("Error getting MediaURL (Apple) from '%s': %s"%(location, sys.exc_info()[1].__str__()))
             mediaurl = ""
         mediaurl = mediaurl.replace("amp;", "")
         #print("Media URL: %s"%mediaurl)
@@ -998,15 +1020,36 @@ class AppleBot(object):
             self.httpresponse = self.httpopener.open(self.httprequest)
             mediacontent = self.httpresponse.read()
         except:
-            print("Error in making media request: %s"%sys.exc_info()[1].__str__())
+            print("Error in making media request for Apple: %s"%sys.exc_info()[1].__str__())
             mediacontent = b""
-        if self.DEBUG:
+        if self.DEBUG and mediacontent != b"":
             t = str(int(time.time() * 1000))
             dumpfile = dumpdir + os.path.sep + "apple_" + t + ".mp3"
             fp = open(dumpfile, "wb")
             fp.write(mediacontent)
             fp.close()
         return mediacontent
+
+
+    def requestwebexp(self, siteurl, pageid, cookies):
+        requesturl = "https://xp.apple.com/report/2/xp_amp_web_exp"
+        t = int(time.time() * 1000)
+        clientid = "4zWHHWZoJz3Nk5UZz7TTz4Qaz8q8z8Ystbxv5"
+        clienteventid1 = "1_1_svwqg2Mshuc24ibcJ2WH9DI0"
+        clienteventid2 = "1_1_phzd02cMYum2hoOK41f7e7h2"
+        jsondata = {"deliveryVersion":"1.0","postTime":t,"events":[{"storeFront":"us","eventTime":(t -1000),"type":"launch","openUrl":"%s"%siteurl,"refUrl":"","extRefUrl":"","app":"web-experience-app","appVersion":"2234.1.0","baseVersion":1,"constraintProfiles":["AMPWeb"],"clientEventId":"%s"%clienteventid1,"isSignedIn":False,"pageUrl":"%s"%siteurl,"pixelRatio":1,"resourceRevNum":"2234.1.0","screenHeight":768,"screenWidth":1366,"timezoneOffset":-330,"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36","windowInnerHeight":607,"windowInnerWidth":788,"windowOuterHeight":741,"windowOuterWidth":1299,"xpPostFrequency":60000,"xpSendMethod":"javascript","xpVersionMetricsKit":"7.3.5","eventType":"enter","eventVersion":1,"clientId":"%s"%clientid},{"pageId":"%s"%pageid,"pageType":"Podcast","pageContext":"iTunes","storeFront":"us","isSignedIn":False,"userType":"signedOut","osLanguage":"en-GB","osLanguages":["en-GB","en-US","en"],"page":"Podcast_%s"%pageid,"pageUrl":"%s"%siteurl,"refUrl":"","extRefUrl":"","app":"web-experience-app","appVersion":"2234.1.0","baseVersion":1,"constraintProfiles":["AMPWeb"],"clientEventId":"%s"%clienteventid2,"eventTime":(t - 500),"pixelRatio":1,"resourceRevNum":"2234.1.0","screenHeight":768,"screenWidth":1366,"timezoneOffset":-330,"userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36","windowInnerHeight":607,"windowInnerWidth":788,"windowOuterHeight":741,"windowOuterWidth":1299,"xpPostFrequency":60000,"xpSendMethod":"javascript","xpVersionMetricsKit":"7.3.5","eventType":"page","eventVersion":1,"pageHistory":[],"clientId":"%s"%clientid}]}
+        postdata = json.dumps(jsondata).encode('utf-8')
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip, deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://podcasts.apple.com/', 'Origin' : 'https://podcasts.apple.com/', 'Host' : 'xp.apple.com', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Content-type' : 'application/json'}
+        httpheaders['Cookie'] = cookies
+        httpheaders['Content-Length'] = postdata.__len__()
+        opener = self.buildopenerrandomproxy()
+        request = urllib.request.Request(requesturl, data=postdata, headers=httpheaders)
+        try:
+            response = opener.open(request)
+        except:
+            print("Error sending request to xp_amp_web_exp (Apple): %s"%sys.exc_info()[1].__str__())
+            response = None
+        return response
 
 
 class BuzzBot(object):
@@ -1088,6 +1131,22 @@ class BuzzBot(object):
                 self.logger.write("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
         return self.httpopener
+
+
+    def buildopenergivenproxy(self, httpsproxyipport):
+        self.context = createrequestcontext()
+        self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
+        try:
+            self.proxyhandler = urllib.request.ProxyHandler({'https': 'https://' + httpsproxyipport,})
+            httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            if self.logging:
+                self.logger.write("Created opener using proxy %s\n"%httpsproxyipport)
+        except:
+            print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
+            if self.logging:
+                self.logger.write("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
+            httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
+        return httpopener
 
 
     def settargetcounts(self, amazonsettarget, spotifysettarget, applesettarget):
@@ -1212,8 +1271,8 @@ class BuzzBot(object):
         global APPLE_HIT_STAT
         titleregex = makeregex(self.podcasttitle)
         apikey = self.amazonkey
-        clientid = self.spotifyclientid
-        clientsecret = self.spotifyclientsecret
+        spotifyclientid = self.spotifyclientid
+        spotifyclientsecret = self.spotifyclientsecret
         ctr = 0
         if targetcount == -1:
             targetcount = 10000 # We set this to 10000, a suitably large number of hits
@@ -1225,12 +1284,19 @@ class BuzzBot(object):
             if self.logging:
                 self.logger.write("Apple URL: %s\n"%siteurl)
             statuspattern = re.compile("APPLE\:\s+\d+", re.DOTALL)
-            applebot = AppleBot(self.proxies)
-            applebot.DEBUG = self.DEBUG
-            applebot.humanize = self.humanize
-            applebot.logging = self.logging
+            applebot = None
+            pageidpattern = re.compile("id(\d+)$")
+            pps = re.search(pageidpattern, siteurl)
+            pageid = ""
+            if pps:
+                pageid = pps.groups()[0]
             while ctr < targetcount :
-                applebot.makehttprequest(siteurl)
+                applebot = AppleBot(self.proxies)
+                applebot.DEBUG = self.DEBUG
+                applebot.humanize = self.humanize
+                applebot.logging = self.logging
+                resp = applebot.makehttprequest(siteurl)
+                cookies = BuzzBot._getCookieFromResponse(resp)
                 applebot.gethttpresponsecontent()
                 podcastlinks = applebot.listpodcastsonpage()
                 if self.DEBUG:
@@ -1238,6 +1304,10 @@ class BuzzBot(object):
                 if self.logging:
                     self.logger.write("APPLE ITERATION #%s =======================\n"%ctr)
                 for pclink in podcastlinks:
+                    resp = applebot.requestwebexp(siteurl, pageid, cookies)
+                    if resp is not None:
+                        if applebot.DEBUG:
+                            print("Sent request to web_exp")
                     if self.logging:
                         self.logger.write("Getting Apple podcast mp3 from %s\n"%pclink)
                     if self.humanize:
@@ -1251,23 +1321,26 @@ class BuzzBot(object):
                     self.msglabeltext.set(curmessagecontent)
                 ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
-            boolret = applebot.existsincontent(titleregex)
-            if "apple" in self.hitstatus.keys():
-                self.hitstatus['apple'].append(boolret)
-            else:
-                self.hitstatus['apple'] = []
-                self.hitstatus['apple'].append(boolret)
+            boolret = False
+            if applebot is not None:
+                boolret = applebot.existsincontent(titleregex)
+                if "apple" in self.hitstatus.keys():
+                    self.hitstatus['apple'].append(boolret)
+                else:
+                    self.hitstatus['apple'] = []
+                    self.hitstatus['apple'].append(boolret)
         elif sitename.lower() == "spotify":
-            spotbot = SpotifyBot(clientid, clientsecret, self.proxies) # Get this from the environment
-            if self.DEBUG:
-                print("Spotify: %s"%siteurl)
-            if self.logging:
-                self.logger.write("Spotify URL: %s\n"%siteurl)
-            spotbot.DEBUG = self.DEBUG
-            spotbot.humanize = self.humanize
-            spotbot.logging = self.logging
             statuspattern = re.compile("SPOTIFY\:\s+\d+", re.DOTALL)
+            spotbot = None
             while ctr < targetcount:
+                spotbot = SpotifyBot(spotifyclientid, spotifyclientsecret, self.proxies) # Get this from the environment
+                if self.DEBUG:
+                    print("Spotify: %s"%siteurl)
+                if self.logging:
+                    self.logger.write("Spotify URL: %s\n"%siteurl)
+                spotbot.DEBUG = self.DEBUG
+                spotbot.humanize = self.humanize
+                spotbot.logging = self.logging
                 spotbot.makehttprequest(siteurl)
                 spotbot.gethttpresponsecontent()
                 episodeurls = spotbot.getallepisodes()
@@ -1330,23 +1403,21 @@ class BuzzBot(object):
                     self.msglabeltext.set(curmessagecontent)
                 ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
-            boolret = spotbot.existsincontent(titleregex)
-            if "spotify" in self.hitstatus.keys():
-                self.hitstatus['spotify'].append(boolret)
-            else:
-                self.hitstatus['spotify'] = []
-                self.hitstatus['spotify'].append(boolret)
+            boolret = False
+            if spotbot is not None:
+                boolret = spotbot.existsincontent(titleregex)
+                if "spotify" in self.hitstatus.keys():
+                    self.hitstatus['spotify'].append(boolret)
+                else:
+                    self.hitstatus['spotify'] = []
+                    self.hitstatus['spotify'].append(boolret)
         elif sitename.lower() == "amazon":
-            ambot = AmazonBot(apikey, self.proxies) # Get this from the environment
             if self.DEBUG:
                 print("Amazon: %s"%siteurl)
             if self.logging:
                 self.logger.write("Amazon URL: %s\n"%siteurl)
             podcastmainurlparts = siteurl.split("/")
             podcastdomain = podcastmainurlparts[2]
-            ambot.DEBUG = self.DEBUG
-            ambot.humanize = self.humanize
-            ambot.logging = self.logging
             statuspattern = re.compile("AMAZON\:\s+\d+", re.DOTALL)
             idpattern = re.compile("https\:\/\/music\.amazon\.com\/podcasts\/(.*)$")
             idps = re.search(idpattern, siteurl)
@@ -1356,19 +1427,25 @@ class BuzzBot(object):
             else:
                 pass # If urlid can't be found, then there is actually not much we can do.
             ctr = 0
+            ambot = None
             while ctr < targetcount:
+                ambot = AmazonBot(apikey, self.proxies) # Get this from the environment
+                ambot.DEBUG = self.DEBUG
+                ambot.humanize = self.humanize
+                ambot.logging = self.logging
                 ambot.makehttprequest(siteurl)
                 ambot.gethttpresponsecontent()
                 proxyip = ambot.selectedproxy
+                proxyport = ambot.selectedproxyport
                 devicetypepattern = re.compile("\"deviceType\"\:\s*\"([^\"]+)\",", re.DOTALL)
-                deviceidpattern = re.compile("\"deviceId\"\:\s*\"([^\"]+)\",", re.DOTALL)
+                deviceidpattern = re.compile("\"deviceId\"\:\s*\"?([\d]+)\"?,", re.DOTALL)
                 faviconpattern = re.compile("\"faviconUrl\"\:\s*\"([^\"]+)\",", re.DOTALL)
                 marketplacepattern = re.compile("\"marketplaceId\"\:\s*\"([^\"]+)\",", re.DOTALL)
                 sessionidpattern = re.compile("\"sessionId\"\:\s*\"([^\"]+)\",", re.DOTALL)
                 ipaddresspattern = re.compile("\"ipAddress\"\:\s*\"([^\"]+)\",", re.DOTALL)
                 csrftokenpattern = re.compile("\"token\"\:\s*\"([^\"]+)\",", re.DOTALL)
                 csrftspattern = re.compile("\"ts\"\:\s*\"([^\"]+)\",", re.DOTALL)
-                csrfrndpattern = re.compile("\"rnd\"\:\s*\"([^\"]+)\",", re.DOTALL)
+                csrfrndpattern = re.compile("\"rnd\"\:\s*\"?([\d]+)\"?,", re.DOTALL)
                 devtype, devid, favicon, mktplace, sessid, ipaddr, csrftoken, csrfts, csrfrnd = "", "", "", "", "", "", "", "", ""
                 dts = re.search(devicetypepattern, ambot.httpcontent)
                 dis = re.search(deviceidpattern, ambot.httpcontent)
@@ -1428,6 +1505,7 @@ class BuzzBot(object):
                         self.logger.write("Error in extracting episode links: %s\n"%sys.exc_info()[1].__str__())
                 ectr = 0
                 mediaurlslist = []
+                iplist = []
                 for eurl in episodeurls:
                     if self.logging:
                         self.logger.write("Fetching Amazon episode URL: %s\n"%eurl)
@@ -1462,9 +1540,26 @@ class BuzzBot(object):
                         csrfts = css.groups()[0]
                     if crs:
                         csrfrnd = crs.groups()[0]
+                    randomint = random.randint(0, 9)
+                    randpos = random.randint(0, 16)
+                    devid = "13142066350023546"
+                    devidlist = list(devid)
+                    devidlist[randpos] = randomint
+                    for i in range(devidlist.__len__()):
+                        devidlist[i] = str(devidlist[i])
+                    devid = ''.join(devidlist)
+                    csrfrnd = "1387173668"
+                    csrfrndlist = list(csrfrnd)
+                    randomint = random.randint(0, 9)
+                    randpos = random.randint(0, 9)
+                    csrfrndlist[randpos] = randomint
+                    for i in range(csrfrndlist.__len__()):
+                        csrfrndlist[i] = str(csrfrndlist[i])
+                    csrfrnd = ''.join(csrfrndlist)
                     proxyip = ambot.selectedproxy
                     #ipaddr = ip4to6(proxyip)
                     ipaddr = proxyip
+                    iplist.append(proxyip + ":" + ambot.selectedproxyport)
                     params = (urlid, sessid, ipaddr, csrftoken, csrfts, csrfrnd, devid, devtype, eurl)
                     mediaidpattern = re.compile("\"mediaId\"\:\"(https:\/\/[^\"]+)\",", re.DOTALL)
                     mflag = 1
@@ -1499,20 +1594,31 @@ class BuzzBot(object):
                     print("AMAZON ITERATION #%s ======================="%ctr)
                 if self.logging:
                     self.logger.write("AMAZON ITERATION #%s =======================\n"%ctr)
+                ipctr = 0
                 for mediaurl in mediaurlslist:
-                    ambot.httpheaders['Referer'] = "https://music.amazon.com/"
-                    ambot.httpheaders['range'] = "bytes=0-"
-                    ambot.httpheaders['sec-fetch-dest'] = "audio"
-                    ambot.httpheaders['sec-fetch-mode'] = "no-cors"
-                    ambot.httpheaders['sec-fetch-site'] = "cross-site"
-                    ambot.httpheaders['Accept-Encoding'] = "identity;q=1, *;q=0"
-                    ambot.httpheaders['Accept'] = "*/*"
+                    httpheaders = {}
+                    httpheaders['Referer'] = "https://music.amazon.com/"
+                    httpheaders['range'] = "bytes=0-"
+                    httpheaders['sec-fetch-dest'] = "audio"
+                    httpheaders['sec-fetch-mode'] = "no-cors"
+                    httpheaders['sec-fetch-site'] = "cross-site"
+                    httpheaders['Accept-Encoding'] = "identity;q=1, *;q=0"
+                    httpheaders['Accept-Language'] = "en-GB,en-US;q=0.9,en;q=0.8"
+                    httpheaders['Accept'] = "*/*"
+                    httpheaders['pragma'] = "no-cache"
+                    httpheaders['cache-control'] = "no-cache"
+                    httpheaders['sec-ch-ua'] = '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"'
+                    httpheaders['sec-ch-ua-mobile'] = '?0'
+                    httpheaders['sec-ch-ua-platform'] = '"Linux"'
+                    httpheaders['user-agent'] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
                     if self.humanize:
                         ht = getrandominterval(5)
                         time.sleep(ht)
                     #response = ambot.makehttprequest(mediaurl)
-                    amzopener = ambot.buildopenerrandomproxy()
-                    amzrequest = urllib.request.Request(mediaurl, headers=ambot.httpheaders)
+                    proxyipport = iplist[ipctr]
+                    #amzopener = ambot.buildopenerrandomproxy()
+                    amzopener = self.buildopenergivenproxy(proxyipport)
+                    amzrequest = urllib.request.Request(mediaurl, headers=httpheaders)
                     try:
                         response = amzopener.open(amzrequest)
                     except:
@@ -1521,7 +1627,7 @@ class BuzzBot(object):
                     if self.DEBUG:
                         print("Getting mp3 from Amazon: %s"%mediaurl)
                     if self.logging:
-                        self.logger.write("Getting mp3 from Amazon: %s"%mediaurl)
+                        self.logger.write("Getting mp3 from Amazon: %s\n"%mediaurl)
                     AMAZON_HIT_STAT += 1
                     curmessagecontent = self.msglabeltext.get()
                     replacementmessage = "AMAZON: %s"%AMAZON_HIT_STAT
@@ -1532,21 +1638,27 @@ class BuzzBot(object):
                     if self.DEBUG:
                         t = str(int(time.time() * 1000))
                         if response is not None:
-                            fa = open(self.dumpdir + os.path.sep + "amazon_%s.mp3"%t, "wb")
-                            fa.write(response.read())
-                            fa.close()
+                            try:
+                                fa = open(self.dumpdir + os.path.sep + "amazon_%s.mp3"%t, "wb")
+                                fa.write(response.read())
+                                fa.close()
+                            except:
+                                print("Could not read response from Amazon mp3 url: %s"%sys.exc_info()[1].__str__())
                         else:
                             print("Couldn't read response from Amazon mp3 media URL.")
                     else:
                         pass
+                    ipctr += 1
                 ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
-            boolret = ambot.existsincontent(titleregex)
-            if "amazon" in self.hitstatus.keys():
-                self.hitstatus['amazon'].append(boolret)
-            else:
-                self.hitstatus['amazon'] = []
-                self.hitstatus['amazon'].append(boolret)
+            boolret = False
+            if ambot is not None:
+                boolret = ambot.existsincontent(titleregex)
+                if "amazon" in self.hitstatus.keys():
+                    self.hitstatus['amazon'].append(boolret)
+                else:
+                    self.hitstatus['amazon'] = []
+                    self.hitstatus['amazon'].append(boolret)
             if self.logging:
                 self.logger.write("Done hitting podcasts for %s\n"%sitename)
         else:
