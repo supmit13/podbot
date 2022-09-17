@@ -1059,6 +1059,7 @@ class BuzzBot(object):
         self.humanize = True
         self.logging = True
         self.cleanupmedia = True
+        self.platformonly = None
         self.parent = weakref.ref(parent)
         self.msglabeltext = parent.msglabeltext
         self.proxies = {'https' : proxieslist,}
@@ -1511,7 +1512,10 @@ class BuzzBot(object):
                         self.logger.write("Fetching Amazon episode URL: %s\n"%eurl)
                     response = ambot.makehttprequest(eurl)
                     #print(response.headers)
-                    cookies = response.headers['set-cookie']
+                    if 'set-cookie' in response.headers.keys():
+                        cookies = response.headers['set-cookie']
+                    else:
+                        cookies = ""
                     devtype, devid, favicon, mktplace, sessid, ipaddr, csrftoken, csrfts, csrfrnd = "", "", "", "", "", "", "", "", ""
                     dts = re.search(devicetypepattern, str(response.content))
                     dis = re.search(deviceidpattern, str(response.content))
@@ -1761,7 +1765,11 @@ class GUI(object):
         self.defaultamazonhits = StringVar()
         self.defaultamazonhits.set(-1)
         self.targetamazonhits = ttk.Combobox(self.mainwin, textvariable=self.defaultamazonhits, values=[i for i in range(-1,1000)], validatecommand=self.valcmd)
-        self.targetamazonhits.grid(row=6, column=1, columnspan=3)
+        self.targetamazonhits.grid(row=6, column=1, columnspan=2)
+        self.amazononly_var = IntVar()
+        self.amazononly = False
+        self.amazononlychkbtn = Checkbutton(self.mainwin, text = "Amazon Only", variable = self.amazononly_var, onvalue = 1, offvalue = 0, height=2, width = 10, command=self.deactivateotherplatforms)
+        self.amazononlychkbtn.grid(row=6, column=2)
         self.targetcountspotifylbl = StringVar()
         self.targetcountspotifylabel = Label(self.mainwin, textvariable=self.targetcountspotifylbl, width=25, justify=LEFT, relief=RAISED)
         self.targetcountspotifylabel.grid(row=7, column=0, sticky=W)
@@ -1770,7 +1778,11 @@ class GUI(object):
         self.defaultspotifyhits = StringVar()
         self.defaultspotifyhits.set(-1)
         self.targetspotifyhits = ttk.Combobox(self.mainwin, textvariable=self.defaultspotifyhits, values=[i for i in range(-1,1000)], validatecommand=self.valcmd)
-        self.targetspotifyhits.grid(row=7, column=1, columnspan=3)
+        self.targetspotifyhits.grid(row=7, column=1, columnspan=2)
+        self.spotifyonly_var = IntVar()
+        self.spotifyonly = False
+        self.spotifyonlychkbtn = Checkbutton(self.mainwin, text = "Spotify Only", variable = self.spotifyonly_var, onvalue = 1, offvalue = 0, height=2, width = 10, command=self.deactivateotherplatforms)
+        self.spotifyonlychkbtn.grid(row=7, column=2)
         self.targetcountapplelbl = StringVar()
         self.targetcountapplelabel = Label(self.mainwin, textvariable=self.targetcountapplelbl, width=25, justify=LEFT, relief=RAISED)
         self.targetcountapplelabel.grid(row=8, column=0, sticky=W)
@@ -1779,7 +1791,11 @@ class GUI(object):
         self.defaultapplehits = StringVar()
         self.defaultapplehits.set(-1)
         self.targetapplehits = ttk.Combobox(self.mainwin, textvariable=self.defaultapplehits, values=[i for i in range(-1,1000)], validatecommand=self.valcmd)
-        self.targetapplehits.grid(row=8, column=1, columnspan=3)
+        self.targetapplehits.grid(row=8, column=1, columnspan=2)
+        self.appleonly_var = IntVar()
+        self.appleonly = False
+        self.appleonlychkbtn = Checkbutton(self.mainwin, text = "Apple Only", variable = self.appleonly_var, onvalue = 1, offvalue = 0, height=2, width = 10, command=self.deactivateotherplatforms)
+        self.appleonlychkbtn.grid(row=8, column=2)
         self.DEBUG_var = IntVar() # By default, we don't we don't want to see debug output
         self.DEBUG = False
         self.debugchkbtn = Checkbutton(self.mainwin, text = "Debug", variable = self.DEBUG_var, onvalue = 1, offvalue = 0, height=2, width = 10)
@@ -1913,19 +1929,39 @@ class GUI(object):
         self.buzz.logging = self.logging
         self.buzz.cleanupmedia = self.cleanupmedia
         self.buzz.settargetcounts(amazonsettarget, spotifysettarget, applesettarget)
-        self.buzz.makerequest()
-        self.buzz.gethttpresponsecontent()
-        urlsdict = self.buzz.getpodcasturls()
+        if self.amazononly == True:
+            self.buzz.platformonly = "amazon"
+        elif self.spotifyonly == True:
+            self.buzz.platformonly = "spotify"
+        elif self.appleonly == True:
+            self.buzz.platformonly = "apple"
+        else:
+            pass
+        if self.amazononly == False and self.spotifyonly == False and self.appleonly == False:
+            self.buzz.makerequest()
+            self.buzz.gethttpresponsecontent()
+            urlsdict = self.buzz.getpodcasturls()
+        else:
+            urlsdict = {self.buzz.platformonly : targeturl}
         self.threadslist = []
         for sitename in urlsdict.keys():
             siteurl = urlsdict[sitename]
             targetcount = -1
             if sitename.lower() == "apple":
                 targetcount = self.buzz.applesettarget
+                if self.amazononly == True or self.spotifyonly == True:
+                    targetcount = 0
             if sitename.lower() == "amazon":
                 targetcount = self.buzz.amazonsettarget
+                if self.appleonly == True or self.spotifyonly == True:
+                    targetcount = 0
             if sitename.lower() == "spotify":
                 targetcount = self.buzz.spotifysettarget
+                if self.appleonly == True or self.amazononly == True:
+                    targetcount = 0
+            # If targetcount is 0, then there is no reason to start a thread
+            if targetcount == 0:
+                continue
             t = Thread(target=self.buzz.hitpodcast, args=(siteurl, sitename, targetcount))
             t.daemon = True
             t.start()
@@ -1960,6 +1996,34 @@ class GUI(object):
         else:
             signal.CTRL_C_EVENT # On windows family
         self.closebot()
+
+
+    def deactivateotherplatforms(self):
+        if self.amazononly_var.get() == 1:
+            self.spotifyonly_var.set(0)
+            self.spotifyonly = False
+            self.appleonly_var.set(0)
+            self.appleonly = False
+            self.amazononly = True
+        elif self.spotifyonly_var.get() == 1:
+            self.appleonly_var.set(0)
+            self.appleonly = False
+            self.amazononly_var.set(0)
+            self.amazononly = False
+            self.spotifyonly = True
+        elif self.appleonly_var.get() == 1:
+            self.spotifyonly_var.set(0)
+            self.spotifyonly = False
+            self.amazononly_var.set(0)
+            self.amazononly = False
+            self.appleonly = True
+        else:
+            self.spotifyonly_var.set(0)
+            self.spotifyonly = False
+            self.appleonly_var.set(0)
+            self.appleonly = False
+            self.amazononly_var.set(0)
+            self.amazononly = False
 
 
 
