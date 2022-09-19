@@ -798,8 +798,10 @@ class SpotifyBot(object):
         return False
 
 
-    def getepisodemp3url(self, episodeid, accesstoken, clienttoken):
+    def getepisodemp3url(self, episodeid, accesstoken, clienttoken, itemtype="episode"):
         episodeurl = "https://spclient.wg.spotify.com/soundfinder/v1/unauth/episode/%s/com.widevine.alpha?market=IN"%episodeid
+        if itemtype == "track":
+            episodeurl = "https://spclient.wg.spotify.com/soundfinder/v1/unauth/track/%s/com.widevine.alpha?market=token"%episodeid
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken, 'app-platform' : 'WebPlayer'}
         if self.DEBUG:
             print("Spotify Episode URL: %s"%episodeurl)
@@ -810,7 +812,7 @@ class SpotifyBot(object):
         try:
             self.httpresponse = self.httpopener.open(epinforequest)
         except:
-            print("Error making episode info request to %s: %s"%(episodeinfourl, sys.exc_info()[1].__str__()))
+            print("Error making episode info request to %s: %s"%(episodeurl, sys.exc_info()[1].__str__()))
             return []
         self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
         mp3url = ""
@@ -825,6 +827,16 @@ class SpotifyBot(object):
     def getallepisodes(self):
         episodeurlpattern = re.compile("(https\:\/\/open\.spotify\.com\/episode\/[^\"]+)\"", re.DOTALL)
         allepisodeurls = re.findall(episodeurlpattern, str(self.httpcontent))
+        if allepisodeurls.__len__() == 0: # Possibly this is a playlist, so there will be tracks.
+            trackurlpattern = re.compile("(https\:\/\/open\.spotify\.com\/track\/[^\"]+)\"", re.DOTALL)
+            uniqueurlsdict = {}
+            alltrackurls = re.findall(trackurlpattern, str(self.httpcontent))
+            allepisodeurls = []
+            for epurl in alltrackurls:
+                if epurl in uniqueurlsdict.keys():
+                    continue
+                uniqueurlsdict[epurl] = 1
+                allepisodeurls.append(epurl)
         return allepisodeurls
 
 
@@ -1347,12 +1359,19 @@ class BuzzBot(object):
                 episodeurls = spotbot.getallepisodes()
                 episodeidlist = []
                 episodeurlpattern = re.compile("https\:\/\/open\.spotify\.com\/episode\/([^\"]+)$")
+                trackurlpattern = re.compile("https\:\/\/open\.spotify\.com\/track\/([^\"]+)$")
                 episodeitemlist = []
+                itemtype = "episode"
                 for epurl in episodeurls:
                     eps = re.search(episodeurlpattern, epurl)
+                    tps = re.search(trackurlpattern, epurl)
                     if eps:
                         epid = eps.groups()[0]
                         episodeidlist.append(epid)
+                    elif tps:
+                        trid = tps.groups()[0]
+                        episodeidlist.append(trid)
+                        itemtype = "track"
                 episodeids = ",".join(episodeidlist)
                 if self.logging:
                     self.logger.write("Spotify episode Ids: %s\n"%episodeids)
@@ -1375,7 +1394,7 @@ class BuzzBot(object):
                     self.logger.write("Spotify access token: %s, client token: %s\n"%(accesstoken, clienttoken))
                 spotmp3list = []
                 for eid in episodeidlist:
-                    epmp3url = spotbot.getepisodemp3url(eid, accesstoken, clienttoken)
+                    epmp3url = spotbot.getepisodemp3url(eid, accesstoken, clienttoken, itemtype)
                     if self.DEBUG:
                         print("Spotify mp3 URL: %s"%epmp3url)
                     if self.logging:
@@ -1821,8 +1840,8 @@ class GUI(object):
         self.stopbutton.grid(row=10, column=1)
         self.closebutton = Button(self.mainwin, text="Close Window", command=self.closebot)
         self.closebutton.grid(row=10, column=2)
-        self.messagelabel = Message(self.mainwin, textvariable=self.msglabeltext, bg="white", width=400, relief=SUNKEN)
-        self.messagelabel.grid(row=11, columnspan=3)
+        self.messagelabel = Message(self.mainwin, textvariable=self.msglabeltext, bg="white", width=45, borderwidth=4, relief="groove")
+        self.messagelabel.grid(row=11, columnspan=4)
         
         self.buzz = None
         self.threadslist = []
