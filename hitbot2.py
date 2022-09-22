@@ -839,6 +839,8 @@ class SpotifyBot(object):
         fj = open(temptrackjs, "w")
         fj.write(trackjscontent)
         fj.close()
+        os.chown(temptrackjs, os.geteuid(), os.getegid())
+        os.chmod(temptrackjs, 0o755)
         cmd = "./%s %s"%(temptrackjs, episodeid)
         outstr = subprocess.check_output(cmd, shell=True)
         outstr = str(outstr).replace("\\n", "").replace("\\r", "")
@@ -857,14 +859,18 @@ class SpotifyBot(object):
             print("Error making episode info request to %s: %s"%(requesturl, sys.exc_info()[1].__str__()))
             return None
         self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        audioduration = 0
         try:
             jsondata = json.loads(self.httpcontent)
             fileslist = jsondata['file']
+            audioduration = int(jsondata['duration'])
         except:
             print("Could not find json content from response to track metadata request: %s"%sys.exc_info()[1].__str__())
             return None
+        audiosize = audioduration/1000 * 44100/8 # 44100 bits/sec bitrate for 'audioduration' millisecs.
         if self.DEBUG:
             print("Track metadata request from %s successful."%requesturl)
+            print("Audio size: %s"%str(audiosize))
         fid = ""
         for f in fileslist:
             if f['format'] == "MP4_128":
@@ -897,7 +903,7 @@ class SpotifyBot(object):
         except:
             print("Could not get json data from track CDN URL request")
             return None
-        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Host' : 'audio-fa.scdn.co', 'range' : "bytes=0-160000"}
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Host' : 'audio-fa.scdn.co', 'range' : "bytes=0-%s"%audiosize}
         trackcontentrequest = urllib.request.Request(cdnurl, headers=httpheaders)
         trackcontent = b""
         try:
@@ -1527,6 +1533,12 @@ class BuzzBot(object):
                 spotmp3list = []
                 for eid in episodeidlist:
                     epmp3url = spotbot.getepisodemp3url(eid, accesstoken, clienttoken, itemtype)
+                    if itemtype == "track": # If we have a track, then we are already hitting the target through "getepisodemp3url"
+                        SPOTIFY_HIT_STAT += 1
+                        curmessagecontent = self.msglabeltext.get()
+                        replacementmessage = "SPOTIFY: %s"%SPOTIFY_HIT_STAT
+                        curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
+                        self.msglabeltext.set(curmessagecontent)
                     if self.DEBUG:
                         print("Spotify mp3 URL: %s"%epmp3url)
                     if self.logging:
