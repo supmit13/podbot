@@ -648,6 +648,7 @@ class SpotifyBot(object):
         self.clientid = client_id
         self.clientsecret = client_secret
         self.redirecturi = "https://localhost:8000/"
+        self.playlistid = ""
         self.spotclient = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=client_id, client_secret=client_secret))
         self.proxies = proxies
         self.response = None # This would a response object from Amazon API
@@ -798,10 +799,129 @@ class SpotifyBot(object):
         return False
 
 
+    def gettrackcontent(self, episodeid, accesstoken, clienttoken):
+        """
+        episodeurl = "https://open.spotify.com/track/%s"%episodeid
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Sec-Fetch-Site' : 'none', 'Sec-Fetch-Mode' : 'navigate', 'Sec-Fetch-Dest' : 'document', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Cookie' : ''}
+        httpheaders['Cookie'] = self.httpheaders['cookie']
+        self.httpopener = self.buildopenerrandomproxy()
+        episoderequest = urllib.request.Request(episodeurl, headers=httpheaders)
+        try:
+            self.httpresponse = self.opener.open(episoderequest)
+        except:
+            print("Error making episode URL request to %s: %s"%(episodeurl, sys.exc_info()[1].__str__()))
+            return None
+        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        jspattern = re.compile("src=\"(https\:\/\/open\.spotifycdn\.com\/cdn\/build\/web\-player\/vendor\~web\-player\.[a-fA-F\d]+\.js)\"", re.IGNORECASE|re.DOTALL)
+        jss = re.search(jspattern, self.httpcontent)
+        jsurl = ""
+        if jss:
+            jsurl = jss.groups()[0]
+        # Get the js file
+        if not jsurl:
+            return None
+        jsheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Sec-Fetch-Site' : 'none', 'Sec-Fetch-Mode' : 'navigate', 'Sec-Fetch-Dest' : 'document', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Host' : 'open.spotifycdn.com', ''}
+        jsrequest = urllib.request.Request(jsurl, headers=jsheaders)
+        try:
+            jsresponse = self.opener.open(jsrequest)
+        except:
+            print("Error making episode URL request to %s: %s"%(jsurl, sys.exc_info()[1].__str__()))
+            return None
+        jscontent = _decodeGzippedContent(jsresponse.read())
+        """
+        tstr = str(int(time.time() * 1000))
+        temptrackjs = "temp_sp_track_%s.js"%tstr
+        fj = open("sp_track.js", "r")
+        jscontent = fj.read()
+        fj.close()
+        jspattern = re.compile("####TRACK_ID####", re.DOTALL)
+        trackjscontent = jspattern.sub(episodeid, jscontent)
+        fj = open(temptrackjs, "w")
+        fj.write(trackjscontent)
+        fj.close()
+        cmd = "./%s %s"%(temptrackjs, episodeid)
+        outstr = subprocess.check_output(cmd, shell=True)
+        outstr = str(outstr).replace("\\n", "").replace("\\r", "")
+        outstr = outstr.replace("b'", "").replace("'", "")
+        # Remove the temporary track js file 
+        os.unlink(temptrackjs)
+        requesturl = "https://spclient.wg.spotify.com/metadata/4/track/%s?market=from_token"%outstr
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en', 'Referer' : 'https://open.spotify.com/', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken, 'app-platform' : 'WebPlayer'}
+        httpheaders['spotify-app-version'] = "1.1.95.750.g9444fb59"
+        epinforequest = urllib.request.Request(requesturl, headers=httpheaders)
+        if self.DEBUG:
+            print("Requesting Track metadata from %s"%requesturl)
+        try:
+            self.httpresponse = self.httpopener.open(epinforequest)
+        except:
+            print("Error making episode info request to %s: %s"%(requesturl, sys.exc_info()[1].__str__()))
+            return None
+        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        try:
+            jsondata = json.loads(self.httpcontent)
+            fileslist = jsondata['file']
+        except:
+            print("Could not find json content from response to track metadata request: %s"%sys.exc_info()[1].__str__())
+            return None
+        if self.DEBUG:
+            print("Track metadata request from %s successful."%requesturl)
+        fid = ""
+        for f in fileslist:
+            if f['format'] == "MP4_128":
+                fid = f['file_id']
+        if fid == "":
+            for f in fileslist:
+                if f['format'] == "MP4_128_DUAL":
+                    fid = f['file_id']
+        if fid == "":
+            for f in fileslist:
+                if f['format'] == "MP4_256":
+                    fid = f['file_id']
+        if self.DEBUG:
+            print("FILE ID: %s"%fid)
+        requesturl = "https://gae2-spclient.spotify.com/storage-resolve/v2/files/audio/interactive/10/%s?version=10000000&product=9&platform=39&alt=json"%fid
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken}
+        trackinforequest = urllib.request.Request(requesturl, headers=httpheaders)
+        if self.DEBUG:
+            print("Making track media URL request from %s"%requesturl)
+        try:
+            self.httpresponse = self.httpopener.open(trackinforequest)
+        except:
+            print("Error making track info request to %s: %s"%(requesturl, sys.exc_info()[1].__str__()))
+            return None
+        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        cdnurl = ""
+        try:
+            jsondata = json.loads(self.httpcontent)
+            cdnurl = jsondata['cdnurl'][0]
+        except:
+            print("Could not get json data from track CDN URL request")
+            return None
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Host' : 'audio-fa.scdn.co', 'range' : "bytes=0-160000"}
+        trackcontentrequest = urllib.request.Request(cdnurl, headers=httpheaders)
+        trackcontent = b""
+        try:
+            trackcontentresponse = self.httpopener.open(trackcontentrequest)
+            trackcontent = trackcontentresponse.read()
+        except:
+            print("Error making track content request to %s: %s"%(cdnurl, sys.exc_info()[1].__str__()))
+            return None
+        if self.DEBUG:
+            print("Track media URL request from %s successful."%requesturl)
+        outfile = os.getcwd() + os.path.sep + "mediadumps" + os.path.sep + "spotify_track_%s.mp3"%str(int(time.time() * 1000))
+        of = open(outfile, "wb")
+        of.write(trackcontent)
+        of.close()
+        return ""
+        
+
+
     def getepisodemp3url(self, episodeid, accesstoken, clienttoken, itemtype="episode"):
         episodeurl = "https://spclient.wg.spotify.com/soundfinder/v1/unauth/episode/%s/com.widevine.alpha?market=IN"%episodeid
         if itemtype == "track":
-            episodeurl = "https://spclient.wg.spotify.com/soundfinder/v1/unauth/track/%s/com.widevine.alpha?market=token"%episodeid
+            #episodeurl = "https://api.spotify.com/v1/tracks/%s"%episodeid
+            retval = self.gettrackcontent(episodeid, accesstoken, clienttoken)
+            return retval
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken, 'app-platform' : 'WebPlayer'}
         if self.DEBUG:
             print("Spotify Episode URL: %s"%episodeurl)
@@ -813,15 +933,23 @@ class SpotifyBot(object):
             self.httpresponse = self.httpopener.open(epinforequest)
         except:
             print("Error making episode info request to %s: %s"%(episodeurl, sys.exc_info()[1].__str__()))
-            return []
+            return None
         self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
         mp3url = ""
         try:
             contentdict = json.loads(self.httpcontent)
-            mp3url = contentdict['passthroughUrl']
+            #print(contentdict)
+            if itemtype == "episode":
+                mp3url = contentdict['passthroughUrl']
+            elif itemtype == "track":
+                mp3url = contentdict['tracks']['items'][i]['track']['external_playback_url']
+            else:
+                print("Given itemtype %s is not handled"%itemtype)
+                mp3url = ""
         except:
             print("Error in getting mp3 URL: %s"%sys.exc_info()[1].__str__())
         return mp3url
+
 
 
     def getallepisodes(self):
@@ -1351,6 +1479,10 @@ class BuzzBot(object):
                     print("Spotify: %s"%siteurl)
                 if self.logging:
                     self.logger.write("Spotify URL: %s\n"%siteurl)
+                playlistpattern = re.compile("https\:\/\/open\.spotify\.com\/playlist\/([a-zA-Z\d]+)$", re.IGNORECASE)
+                spps = re.search(playlistpattern, siteurl)
+                if spps:
+                    spotbot.playlistid = spps.groups()[0]
                 spotbot.DEBUG = self.DEBUG
                 spotbot.humanize = self.humanize
                 spotbot.logging = self.logging
@@ -1399,7 +1531,8 @@ class BuzzBot(object):
                         print("Spotify mp3 URL: %s"%epmp3url)
                     if self.logging:
                         self.logger.write("Spotify mp3 URL: %s\n"%epmp3url)
-                    spotmp3list.append(epmp3url)
+                    if epmp3url != "" and epmp3url is not None: # Track url values will be empty, since tracks have been downloaded before this point.
+                        spotmp3list.append(epmp3url)
                 if self.DEBUG:
                     print("SPOTIFY ITERATION #%s ======================="%ctr)
                 if self.logging:
