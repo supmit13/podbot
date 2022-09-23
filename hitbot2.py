@@ -22,6 +22,7 @@ import gzip
 import io
 import hashlib, base64
 import weakref
+import uuid
 
 # Amazon APIs
 import boto3
@@ -445,28 +446,6 @@ class AmazonBot(object):
         sesslist[randpos1] = xylist[0]
         sesslist[randpos2] = xylist[1]
         sesstoken = ''.join(sesslist)
-        """
-        mboxsess_seed = "47a708d83a684d8d9abc1df36d931572"
-        mboxlist = list(mboxsess_seed)
-        randpos1 = random.randint(0, mboxlist.__len__() - 1)
-        randpos2 = random.randint(0, mboxlist.__len__() - 1)
-        mboxlist[randpos1] = xylist[0]
-        mboxlist[randpos2] = xylist[1]
-        mboxsess_new = ''.join(mboxlist)
-        mboxtt = 1661575787 + randpos1 # Needed a random number to add
-        targetvisitorid = 1662458172619 + randpos2 # Same as above
-        noflushsid_seed = "fd772b08706faa75366f6dfeaf8882ecd58ed87be86bee84d2970db0053e8f75"
-        noflushsid_list = list(noflushsid_seed)
-        for i in range(len(noflushsid_list)):
-            noflushsid_list[i] = str(noflushsid_list[i])
-        randpos1 = random.randint(0, mboxlist.__len__() - 1)
-        randpos2 = random.randint(0, mboxlist.__len__() - 1)
-        randval1 = random.randint(0, 9)
-        randval2 = random.randint(0, 9)
-        noflushsid_list[randpos1] = str(randval1)
-        noflushsid_list[randpos2] = str(randval2)
-        noflushsid = ''.join(noflushsid_list)
-        """
         # Cookies should not be repeated.
         sesstokenpattern = re.compile("session\-token=[^;]+;", re.DOTALL)
         ubidmainpattern = re.compile("ubid\-main=\d+\-\d+\-\d+;", re.DOTALL)
@@ -476,7 +455,6 @@ class AmazonBot(object):
         cookies = ubidmainpattern.sub("", cookies, 1)
         cookies = sessidpattern.sub("", cookies, 1)
         cookies = sessidtimepattern.sub("", cookies, 1)
-        #httpheaders['cookie'] = cookies + "at_check=true; AMCVS_4A8581745834114C0A495E2B%40AdobeOrg=1; _mkto_trk=id:365-EFI-026&token:_mch-amazon.com-1661573838751-32752; mbox=session#" + mboxsess_new + "#" + str(mboxtt) + "|PC#47a708d83a684d8d9abc1df36d931572.31_0#1724818727; aws-target-visitor-id=" + str(targetvisitorid) + "-844634.30_0; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=" + noflushsid + "; s_sq=%5B%5BB%5D%5D; session-token=" + sesstoken + ";"
         httpheaders['cookie'] = cookies + "session-token=" + sesstoken + ";"
         datetzpattern = re.compile("\d{2}\-[a-zA-Z]{3}\-\d{4}\s+\d{2}\:\d{2}\:\d{2}\s+GMT\s*;", re.IGNORECASE|re.DOTALL)
         httpheaders['cookie'] = datetzpattern.sub("", httpheaders['cookie'])
@@ -582,7 +560,7 @@ class AmazonBot(object):
         sesslist[randpos1] = xylist[0]
         sesslist[randpos2] = xylist[1]
         sesstoken = ''.join(sesslist)
-        httpheaders['cookie'] = cookies + "at_check=true; AMCVS_4A8581745834114C0A495E2B%40AdobeOrg=1; _mkto_trk=id:365-EFI-026&token:_mch-amazon.com-1661573838751-32752; mbox=session#47a708d83a684d8d9abc1df36d931572#1661575787|PC#47a708d83a684d8d9abc1df36d931572.31_0#1724818727; s_nr=1661573929088-New; s_lv=1661573929089; aws-mkto-trk=id%3A112-TZM-766%26token%3A_mch-aws.amazon.com-1657275509942-54640; aws_lang=en; s_campaign=ps%7C32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-data=%7B%22support%22%3A%221%22%7D; s_eVar60=32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-visitor-id=1662458172619-844632.31_0; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=fd772b08706faa75366f6dfeaf8882ecd58ed87be86bee84d2970db0053e8f75; AMCV_7742037254C95E840A4C98A6%40AdobeOrg=1585540135%7CMCIDTS%7C19243%7CMCMID%7C86123343969842436782305730671676825045%7CMCAAMLH-1663176902%7C12%7CMCAAMB-1663176902%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1662579302s%7CNONE%7CMCAID%7CNONE%7CMCSYNCSOP%7C411-19248%7CvVersion%7C4.4.0; s_sq=%5B%5BB%5D%5D; session-token=" + sesstoken + ";"
+        httpheaders['cookie'] = cookies + "at_check=true; AMCVS_4A8581745834114C0A495E2B%40AdobeOrg=1; _mkto_trk=id:365-EFI-026&token:_mch-amazon.com-1661573838751-32752; mbox=session#47a708d83a684d8d9abc1df36d931572#1661575787|PC#47a708d83a684d8d9abc1df36d931572.31_0#1724818727; s_nr=1661573929087-New; s_lv=1661573929088; aws-mkto-trk=id%3A112-TZM-766%26token%3A_mch-aws.amazon.com-1657275509942-54640; aws_lang=en; s_campaign=ps%7C32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-data=%7B%22support%22%3A%221%22%7D; s_eVar60=32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-visitor-id=1662458172618-844632.31_0; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=fd772b08706faa75366f6dfeaf8882ecd58ed87be86bee84d2970db0053e8f75; AMCV_7742037254C95E840A4C98A6%40AdobeOrg=1585540135%7CMCIDTS%7C19243%7CMCMID%7C86123343969842436782305730671676825045%7CMCAAMLH-1663176902%7C12%7CMCAAMB-1663176902%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1662579302s%7CNONE%7CMCAID%7CNONE%7CMCSYNCSOP%7C411-19248%7CvVersion%7C4.4.0; s_sq=%5B%5BB%5D%5D; session-token=" + sesstoken + ";"
         beginspacepattern = re.compile("^\s+")
         domainpattern = re.compile("Domain", re.IGNORECASE)
         expirespattern = re.compile("Expires", re.IGNORECASE)
@@ -649,6 +627,7 @@ class SpotifyBot(object):
         self.clientsecret = client_secret
         self.redirecturi = "https://localhost:8000/"
         self.playlistid = ""
+        self.ispodcast = True
         self.spotclient = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=client_id, client_secret=client_secret))
         self.proxies = proxies
         self.response = None # This would a response object from Amazon API
@@ -705,7 +684,7 @@ class SpotifyBot(object):
         hh = d.strftime("%H")
         mm = d.strftime("%M")
         ss = d.strftime("%S")
-        self.httpheaders['cookie'] = "sss=1; sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z;  ki_r=; ki_t=1660164170739%3B1663020058642%3B1663020058642%3B13%3B42;OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
+        self.httpheaders['cookie'] = "sss=1; sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-09-19T21:28:38.589Z; ki_r=; ki_t=1663622222898%3B1663943862664%3B1663967345225%3B4%3B31;OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
         #self.httpheaders['cookie'] = "sss=1; sp_adid=dab9886a-26b8-426c-b587-4deafa6317d6; sp_m=in-en; _gcl_au=1.1.769434751.1660164171; _cs_c=0; _scid=357dc4b2-eaa2-47c7-9f9a-9e2cbe9b7d5a; _fbp=fb.1.1660164171920.249213084; _sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z; sp_phash=a2c17ae575b28126b4c5aa2b5fd872d2d196352e; sp_gaid=0088fcade00809beb262d750ca91434142a10eb4a69cbdff9c7404; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D; sp_t=a2f20bfc3a23619df074952c61af1c0f; sp_last_utm=%7B%22utm_campaign%22%3A%22your_account%22%2C%22utm_medium%22%3A%22menu%22%2C%22utm_source%22%3A%22spotify%22%7D; _cs_id=2e855292-0381-a776-8bb4-d86b89592613.1660164171.2.1660415644.1660415644.1.1694328171610; _ga_S35RN5WNT2=GS1.1.1660415644.2.1.1660415662.42; sss=1; sp_landing=https%3A%2F%2Fopen.spotify.com%2Fservice-worker.js.map%3Fsp_cid%3Da2f20bfc3a23619df074952c61af1c0f%26device%3Ddesktop; _gid=GA1.2.1290307347.1663020057; _ga_ZWG1NSHWD8=GS1.1.1663020057.27.0.1663020057.0.0.0; OptanonConsent=isIABGlobal=false&datestamp=Tue+Sep+13+2022+03%3A30%3A57+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; ki_t=1660164170739%3B1663020058642%3B1663020058642%3B13%3B42; ki_r=; _ga=GA1.2.190256731.1660163979"
         if self.DEBUG:
             print("Cookie Sent: %s"%self.httpheaders['cookie'])
@@ -799,36 +778,7 @@ class SpotifyBot(object):
         return False
 
 
-    def gettrackcontent(self, episodeid, accesstoken, clienttoken):
-        """
-        episodeurl = "https://open.spotify.com/track/%s"%episodeid
-        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Sec-Fetch-Site' : 'none', 'Sec-Fetch-Mode' : 'navigate', 'Sec-Fetch-Dest' : 'document', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Cookie' : ''}
-        httpheaders['Cookie'] = self.httpheaders['cookie']
-        self.httpopener = self.buildopenerrandomproxy()
-        episoderequest = urllib.request.Request(episodeurl, headers=httpheaders)
-        try:
-            self.httpresponse = self.opener.open(episoderequest)
-        except:
-            print("Error making episode URL request to %s: %s"%(episodeurl, sys.exc_info()[1].__str__()))
-            return None
-        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
-        jspattern = re.compile("src=\"(https\:\/\/open\.spotifycdn\.com\/cdn\/build\/web\-player\/vendor\~web\-player\.[a-fA-F\d]+\.js)\"", re.IGNORECASE|re.DOTALL)
-        jss = re.search(jspattern, self.httpcontent)
-        jsurl = ""
-        if jss:
-            jsurl = jss.groups()[0]
-        # Get the js file
-        if not jsurl:
-            return None
-        jsheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Sec-Fetch-Site' : 'none', 'Sec-Fetch-Mode' : 'navigate', 'Sec-Fetch-Dest' : 'document', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Host' : 'open.spotifycdn.com', ''}
-        jsrequest = urllib.request.Request(jsurl, headers=jsheaders)
-        try:
-            jsresponse = self.opener.open(jsrequest)
-        except:
-            print("Error making episode URL request to %s: %s"%(jsurl, sys.exc_info()[1].__str__()))
-            return None
-        jscontent = _decodeGzippedContent(jsresponse.read())
-        """
+    def gettrackcontent(self, episodeid, accesstoken, clienttoken, dumpdir):
         tstr = str(int(time.time() * 1000))
         temptrackjs = "temp_sp_track_%s.js"%tstr
         fj = open("sp_track.js", "r")
@@ -901,9 +851,32 @@ class SpotifyBot(object):
             jsondata = json.loads(self.httpcontent)
             cdnurl = jsondata['cdnurl'][0]
         except:
-            print("Could not get json data from track CDN URL request")
+            print("Could not get json data from track info request")
             return None
-        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Host' : 'audio-fa.scdn.co', 'range' : "bytes=0-%s"%audiosize}
+        # We do have the CDN URL now, but we still need to send a request to 'https://gae2-spclient.spotify.com/melody/v1/msg/batch'
+        batchurl = "https://gae2-spclient.spotify.com/melody/v1/msg/batch"
+        batchheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'content-type' : 'text/plain;charset=UTF-8', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken}
+        u = uuid.uuid1()
+        t = (u.time - 0x01b21dd213814000)*100/1e9
+        playbackid = str(u).replace("-", "")
+        batchdata = {"messages":[{"type":"jssdk_playback_start","message":{"play_track":"spotify:track:%s"%episodeid,"file_id":"%s"%fid,"playback_id":"%s"%playbackid,"session_id":str(t),"ms_start_position":0,"initially_paused":False,"client_id":"","correlation_id":""}}],"sdk_id":"harmony:4.27.0","platform":"web_player linux undefined;chrome 103.0.0.0;desktop","client_version":"0.0.0"}
+        batchpostdata = json.dumps(batchdata).encode('utf-8')
+        batchheaders['content-length'] = batchpostdata.__len__()
+        batchrequest = urllib.request.Request(batchurl, data=batchpostdata, headers=batchheaders)
+        try:
+            batchresponse = self.httpopener.open(batchrequest)
+            batchcontent = _decodeGzippedContent(batchresponse.read())
+            batchjson = json.loads(batchcontent)
+            if batchjson['status'] == 202:
+                print("Successfully made batch request")
+            else:
+                print("Batch request probably didn't succeed. Response - status: %s"%batchjson['status'])
+        except:
+            print("Error making batch request to %s: %s"%(batchurl, sys.exc_info()[1].__str__()))
+        # We don't care about the response from the above request. It should send {'status' : 202} as response content, but we proceed with the next request even if it doesn't. The request above serves to increase the chances of a hit taking place.
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Host' : 'audio-fa.scdn.co', 'range' : "bytes=0-"}
+        if self.DEBUG:
+            print("Spotify CDN Url: %s"%cdnurl)
         trackcontentrequest = urllib.request.Request(cdnurl, headers=httpheaders)
         trackcontent = b""
         try:
@@ -913,21 +886,25 @@ class SpotifyBot(object):
             print("Error making track content request to %s: %s"%(cdnurl, sys.exc_info()[1].__str__()))
             return None
         if self.DEBUG:
-            print("Track media URL request from %s successful."%requesturl)
-        outfile = os.getcwd() + os.path.sep + "mediadumps" + os.path.sep + "spotify_track_%s.mp3"%str(int(time.time() * 1000))
-        of = open(outfile, "wb")
-        of.write(trackcontent)
-        of.close()
-        return ""
+            print("Track media URL request from %s successful."%cdnurl)
+        if self.DEBUG:
+            outfile = dumpdir + os.path.sep + "spotify_track_%s.mp3"%str(int(time.time() * 1000))
+            of = open(outfile, "wb")
+            of.write(trackcontent)
+            of.close()
+        return cdnurl
         
 
 
-    def getepisodemp3url(self, episodeid, accesstoken, clienttoken, itemtype="episode"):
+    def getepisodemp3url(self, episodeid, accesstoken, clienttoken, dumpdir, itemtype="episode"):
         episodeurl = "https://spclient.wg.spotify.com/soundfinder/v1/unauth/episode/%s/com.widevine.alpha?market=IN"%episodeid
         if itemtype == "track":
             #episodeurl = "https://api.spotify.com/v1/tracks/%s"%episodeid
-            retval = self.gettrackcontent(episodeid, accesstoken, clienttoken)
-            return retval
+            retval = self.gettrackcontent(episodeid, accesstoken, clienttoken, dumpdir)
+            if retval is not None:
+                return retval
+            else: # May be we have a podcast episode dressed as a track in a playlist.
+                pass
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken, 'app-platform' : 'WebPlayer'}
         if self.DEBUG:
             print("Spotify Episode URL: %s"%episodeurl)
@@ -939,15 +916,15 @@ class SpotifyBot(object):
             self.httpresponse = self.httpopener.open(epinforequest)
         except:
             print("Error making episode info request to %s: %s"%(episodeurl, sys.exc_info()[1].__str__()))
-            return None
+            return ""
         self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
         mp3url = ""
+        self.ispodcast = True # This is set to True for itemtype='episode' and for those itemtype='track' whose content is actually a podcast episode arranged as a playlist.
         try:
             contentdict = json.loads(self.httpcontent)
-            #print(contentdict)
             if itemtype == "episode":
                 mp3url = contentdict['passthroughUrl']
-            elif itemtype == "track":
+            elif itemtype == "track": # This is for episodes of podcasts that have been arranged as a playlist (and hence, called 'track').
                 mp3url = contentdict['tracks']['items'][i]['track']['external_playback_url']
             else:
                 print("Given itemtype %s is not handled"%itemtype)
@@ -1530,42 +1507,45 @@ class BuzzBot(object):
                 clienttoken = spotbot.getclienttoken()
                 if self.logging:
                     self.logger.write("Spotify access token: %s, client token: %s\n"%(accesstoken, clienttoken))
+                if self.DEBUG:
+                    print("SPOTIFY ITERATION #%s ======================="%ctr)
+                if self.logging:
+                    self.logger.write("SPOTIFY ITERATION #%s =======================\n"%ctr)
                 spotmp3list = []
                 for eid in episodeidlist:
-                    epmp3url = spotbot.getepisodemp3url(eid, accesstoken, clienttoken, itemtype)
-                    if itemtype == "track": # If we have a track, then we are already hitting the target through "getepisodemp3url"
+                    spotbot.ispodcast = False
+                    epmp3url = spotbot.getepisodemp3url(eid, accesstoken, clienttoken, self.dumpdir, itemtype)
+                    if self.DEBUG:
+                        print("Spotify mp3 URL: %s"%epmp3url)
+                    if self.logging:
+                        self.logger.write("Spotify mp3 URL: %s\n"%epmp3url)
+                    if itemtype == "track" and spotbot.ispodcast == False: # If we have a track, then we are already hitting the target through "getepisodemp3url"
                         SPOTIFY_HIT_STAT += 1
                         curmessagecontent = self.msglabeltext.get()
                         replacementmessage = "SPOTIFY: %s"%SPOTIFY_HIT_STAT
                         curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
                         self.msglabeltext.set(curmessagecontent)
-                    if self.DEBUG:
-                        print("Spotify mp3 URL: %s"%epmp3url)
-                    if self.logging:
-                        self.logger.write("Spotify mp3 URL: %s\n"%epmp3url)
-                    if epmp3url != "" and epmp3url is not None: # Track url values will be empty, since tracks have been downloaded before this point.
-                        spotmp3list.append(epmp3url)
-                if self.DEBUG:
-                    print("SPOTIFY ITERATION #%s ======================="%ctr)
-                if self.logging:
-                    self.logger.write("SPOTIFY ITERATION #%s =======================\n"%ctr)
+                    spotmp3list.append(epmp3url)
                 for epurl in spotmp3list:
                     if self.humanize:
                         ht = getrandominterval(5)
                         time.sleep(ht)
-                    content = spotbot.getepisode(epurl)
+                    if spotbot.ispodcast == True:
+                        content = spotbot.getepisode(epurl)
                     if self.logging:
-                        self.logger.write("Getting Spotify mp3 from %s\n"%epurl)
+                        self.logger.write("Got Spotify mp3 from %s\n"%epurl)
                     if self.DEBUG:
-                        t = str(int(time.time() * 1000))
-                        fs = open(self.dumpdir + os.path.sep + "spotify_%s.mp3"%t, "wb")
-                        fs.write(content)
-                        fs.close()
-                    SPOTIFY_HIT_STAT += 1
-                    curmessagecontent = self.msglabeltext.get()
-                    replacementmessage = "SPOTIFY: %s"%SPOTIFY_HIT_STAT
-                    curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
-                    self.msglabeltext.set(curmessagecontent)
+                        if spotbot.ispodcast == True:
+                            t = str(int(time.time() * 1000))
+                            fs = open(self.dumpdir + os.path.sep + "spotify_%s.mp3"%t, "wb")
+                            fs.write(content)
+                            fs.close()
+                    if spotbot.ispodcast == True:
+                        SPOTIFY_HIT_STAT += 1
+                        curmessagecontent = self.msglabeltext.get()
+                        replacementmessage = "SPOTIFY: %s"%SPOTIFY_HIT_STAT
+                        curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
+                        self.msglabeltext.set(curmessagecontent)
                 ctr += 1
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = False
@@ -1987,7 +1967,7 @@ class GUI(object):
         self.closebutton.grid(row=10, column=2)
         self.messagelabel = Message(self.mainwin, textvariable=self.msglabeltext, bg="white", width=45, borderwidth=4, relief="groove")
         self.messagelabel.grid(row=11, columnspan=4)
-        
+
         self.buzz = None
         self.threadslist = []
         self.rt = None
@@ -2166,28 +2146,52 @@ class GUI(object):
         if self.amazononly_var.get() == 1:
             self.spotifyonly_var.set(0)
             self.spotifyonly = False
+            self.spotifyonlychkbtn.config(state=DISABLED)
+            self.targetspotifyhits.config(state=DISABLED)
             self.appleonly_var.set(0)
             self.appleonly = False
+            self.appleonlychkbtn.config(state=DISABLED)
+            self.targetapplehits.config(state=DISABLED)
             self.amazononly = True
+            self.amazononlychkbtn.config(state=ACTIVE)
+            self.targetamazonhits.config(state=ACTIVE)
         elif self.spotifyonly_var.get() == 1:
             self.appleonly_var.set(0)
             self.appleonly = False
+            self.appleonlychkbtn.config(state=DISABLED)
+            self.targetapplehits.config(state=DISABLED)
             self.amazononly_var.set(0)
             self.amazononly = False
+            self.amazononlychkbtn.config(state=DISABLED)
+            self.targetamazonhits.config(state=DISABLED)
             self.spotifyonly = True
+            self.spotifyonlychkbtn.config(state=ACTIVE)
+            self.targetspotifyhits.config(state=ACTIVE)
         elif self.appleonly_var.get() == 1:
             self.spotifyonly_var.set(0)
             self.spotifyonly = False
+            self.spotifyonlychkbtn.config(state=DISABLED)
+            self.targetspotifyhits.config(state=DISABLED)
             self.amazononly_var.set(0)
             self.amazononly = False
+            self.amazononlychkbtn.config(state=DISABLED)
+            self.targetamazonhits.config(state=DISABLED)
             self.appleonly = True
+            self.appleonlychkbtn.config(state=ACTIVE)
+            self.targetapplehits.config(state=ACTIVE)
         else:
             self.spotifyonly_var.set(0)
             self.spotifyonly = False
+            self.spotifyonlychkbtn.config(state=ACTIVE)
+            self.targetspotifyhits.config(state=ACTIVE)
             self.appleonly_var.set(0)
             self.appleonly = False
+            self.appleonlychkbtn.config(state=ACTIVE)
+            self.targetapplehits.config(state=ACTIVE)
             self.amazononly_var.set(0)
             self.amazononly = False
+            self.amazononlychkbtn.config(state=ACTIVE)
+            self.targetamazonhits.config(state=ACTIVE)
 
 
 

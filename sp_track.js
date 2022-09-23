@@ -2,6 +2,7 @@
 // Spotify's code to compute the gid of the track entity.
 // This has been inspired and created by looking at spotify's
 // javascript code library. - supmit.
+// https://open.spotifycdn.com/cdn/build/web-player/vendor~web-player.b9b386ec.js
 
 var t="0123456789abcdef",n="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",o=[];o.length=256;for(var i=0;i<256;i++)o[i]=t[i>>4]+t[15&i];var r=[];r.length=128;for(i=0;i<n.length;++i)r[n.charCodeAt(i)]=i;var a=[];for(i=0;i<16;i++)a[t.charCodeAt(i)]=i;for(i=0;i<6;i++)a["ABCDEF".charCodeAt(i)]=10+i;
 
