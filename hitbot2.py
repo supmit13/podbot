@@ -46,6 +46,7 @@ from tkinter import ttk
 AMAZON_HIT_STAT = 0
 APPLE_HIT_STAT = 0
 SPOTIFY_HIT_STAT = 0
+TIMEOUT_S = 60
 
 
 def _decodeGzippedContent(encoded_content):
@@ -185,7 +186,7 @@ class AmazonBot(object):
         self.requesturl = "https://music.amazon.com/"
         self.httprequest = urllib.request.Request(self.requesturl, headers=self.httpheaders)
         try:
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
         except:
             print("Error making request to %s: %s"%(self.requesturl, sys.exc_info()[1].__str__()))
             return None
@@ -224,13 +225,13 @@ class AmazonBot(object):
             httpsproxycount = self.proxies['https'].__len__() - 1
             httpsrandomctr = getrandomint(0, httpsproxycount-1)
             try:
-                self.httpresponse = session.get(requrl, proxies={'https': self.proxies['https'][httpsrandomctr]})
+                self.httpresponse = session.get(requrl, proxies={'https': self.proxies['https'][httpsrandomctr]}, timeout=TIMEOUT_S)
                 if self.DEBUG:
                     print("Proxy used (Amazon): %s"%self.proxies['https'][httpsrandomctr])
             except:
-                self.httpresponse = session.get(requrl)
+                self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
         else:
-            self.httpresponse = session.get(requrl)
+            self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
         return self.httpresponse
 
 
@@ -406,9 +407,9 @@ class AmazonBot(object):
         siteurlparts = siteurl.split("/")
         siteurl = "/" + "/".join(siteurlparts[3:])
         ts = int(time.time() * 1000)
-        amzrequestid_seed = "435c30ee-1152-4ec2-a192-15270b4e4375"
+        amzrequestid_seed = "707bcf7c-2fde-47e1-9244-0f8245e13d9"
         #amzrequestid_seed = "9bc04d79-b0b8-42dc-b9cb-e66189e84cdc"
-        requestidentityid_seed = "8ec94331-bd47-43ff-87cd-21897b2e8195"
+        requestidentityid_seed = "0b7c4526-e110-4dc8-932b-42a21a707017"
         amzrequestid_list = list(amzrequestid_seed)
         for ri in range(amzrequestid_list.__len__()):
             amzrequestid_list[ri] = str(amzrequestid_list[ri])
@@ -438,7 +439,8 @@ class AmazonBot(object):
             httpheaders['x-amz-target'] = "com.amazon.dmpplaybackvisualservice.skills.DMPPlaybackVisualService.PlayPodcastWebSkill"
             datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"%s"%requestidentityid,"sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}}, "extra":{}}        
         postdata = json.dumps(datadict).encode('utf-8')
-        seedsesstoken = "RLu67mQaxSowz1izN2xQADeJFmrvbiQvS8PTT2ZSXHiI9FcI6A7iId+bx4TKlkzUZctsaUpNVzGEikeX4V0Q4G6rXHS6WcnBHdPXCK/KZo2c2CVGJPmrUycxEYVUmrUwKC37Xy5QeqJVuqSOvWc6n4YZ1wIEl3+ln4aeM0MzKsM1HwPsYW+mkf6WXsXpTA2e"
+        #seedsesstoken = "RLu67mQaxSowz1izN2xQADeJFmrvbiQvS8PTT2ZSXHiI9FcI6A7iId+bx4TKlkzUZctsaUpNVzGEikeX4V0Q4G6rXHS6WcnBHdPXCK/KZo2c2CVGJPmrUycxEYVUmrUwKC37Xy5QeqJVuqSOvWc6n4YZ1wIEl3+ln4aeM0MzKsM1HwPsYW+mkf6WXsXpTA2e"
+        seedsesstoken = "0LqsflkijLJIl8OjucajXcCdNbcTOHKzHWMFKeWrPacUkgV5iFfeGwJw+RFnHGgtZhpbhVU0m9XCEBrXslFDjPf0yvSxFLYSBhwoXYDXtFrALKaNvTSGF5jSsPaIeMdgqmbh+BxyjdotsFCiW7+5p7kaVz7jcR2Piu1hDrwx8eJsSTu27nx0Zjm8uW7VqH0e"
         sesslist = list(seedsesstoken)
         xylist = getrandomalphabet()
         randpos1 = random.randint(0, sesslist.__len__() - 1)
@@ -468,11 +470,15 @@ class AmazonBot(object):
             requrl = "https://music.amazon.com/EU/api/podcast/playback/visual"
             self.httprequest = urllib.request.Request(requrl, data=postdata, headers=httpheaders)
         try:
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
         except:
             print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
             return {}
-        returndata = _decodeGzippedContent(self.httpresponse.read())
+        returndata = "{}"
+        try:
+            returndata = _decodeGzippedContent(self.httpresponse.read())
+        except:
+            print("Couldn't get content from visual URL - Error: %s"%sys.exc_info()[1].__str__())
         try:
             returndict = json.loads(returndata.encode('utf-8'))
         except:
@@ -486,9 +492,9 @@ class AmazonBot(object):
         siteurlparts = siteurl.split("/")
         siteurl = "/" + "/".join(siteurlparts[3:])
         ts = int(time.time() * 1000)
-        amzrequestid_seed = "435c30ee-1152-4ec2-a192-15270b4e4375"
+        amzrequestid_seed = "707bcf7c-2fde-47e1-9244-0f8245e13d9"
         #amzrequestid_seed = "9bc04d79-b0b8-42dc-b9cb-e66189e84cdc"
-        requestidentityid_seed = "8ec94331-bd47-43ff-87cd-21897b2e8195"
+        requestidentityid_seed = "0b7c4526-e110-4dc8-932b-42a21a707017"
         amzrequestid_list = list(amzrequestid_seed)
         for ri in range(amzrequestid_list.__len__()):
             amzrequestid_list[ri] = str(amzrequestid_list[ri])
@@ -514,7 +520,8 @@ class AmazonBot(object):
         pbrequested = t - 875467
         pbstarted = t - 871522
         updatedtime = t - 871508
-        opsid_seed = "8aa0b51c-7426-4957-9e1e-27b81b8249f0"
+        #opsid_seed = "8aa0b51c-7426-4957-9e1e-27b81b8249f0"
+        opsid_seed = "bbd8d367-bcbc-4220-8344-6a442ebd2e6e"
         opsid_list = list(opsid_seed)
         for o in range(len(opsid_list)):
             opsid_list[o] = str(opsid_list[o])
@@ -527,7 +534,7 @@ class AmazonBot(object):
             opsid_list[randpos2] = ablist[1]
         opsid = ''.join(opsid_list)
         playbackmetric = {"operations":[{"id":"%s"%opsid,"element":{"id":"%s"%episodeid,"mediaCollectionType":"PODCAST","playbackSignalType":"PLAYBACK_STARTED","currentProgressMilliseconds":0,"playbackRequestedAtTimestampMilliseconds":pbrequested,"metricsPreset":"","isMediaDownloaded":False,"currentPlaybackSpeed":1,"playbackStartOffsetMilliseconds":0,"playbackStartedAtTimestampMilliseconds":pbstarted,"initialPlaybackStartDelayMilliseconds":3945,"rebufferDurationMilliseconds":0,"rebufferCount":0,"pageType":"","audioUri":"%s"%episodemp3,"podcastShowVariantId":"","podcastEpisodeVariantId":"","__type":"Podcast.PlaybackMetricsInterface.v1_0#PlaybackMetricWriteElement","interface":"Podcast.Web.PlaybackMetricsInterface.PlaybackMetricWriteElement"},"condition":{"updatedTime":updatedtime,"__type":"SOAAppSyncInterface.v1_0#TimeConditionElement"},"__type":"SOAAppSyncInterface.v1_0#OperationElement"}],"__type":"Podcast.PlaybackMetricsInterface.v1_0#PlaybackMetricsOperationsClientState"}
-        datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"%s"%requestidentityid,"sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"738","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}}, "playbackMetric" : playbackmetric, "extra":{}}       
+        datadict = {"preset":"{\"podcastId\":\"%s\",\"startAtEpisodeId\":\"%s\"}"%(urlid, episodeid),"identity":{"__type":"SOACoreInterface.v1_0#Identity","application":{"__type":"SOACoreInterface.v1_0#ApplicationIdentity","version":"2.1"},"user":{"__type":"SOACoreInterface.v1_0#UserIdentity","authentication":""},"request":{"__type":"SOACoreInterface.v1_0#RequestIdentity","id":"%s"%requestidentityid,"sessionId":"%s"%sessid,"ipAddress":"%s"%ipaddr,"timestamp":ts,"domain":"music.amazon.com","csrf":{"__type":"SOACoreInterface.v1_0#Csrf","token":"%s"%csrftoken,"ts":"%s"%csrfts,"rnd":"%s"%csrfrnd}},"device":{"__type":"SOACoreInterface.v1_0#DeviceIdentity","id":"%s"%devid,"typeId":"%s"%devtype,"model":"WEBPLAYER","timeZone":"Asia/Calcutta","language":"en_US","height":"668","width":"797","osVersion":"n/a","manufacturer":"n/a"}},"clientStates":{"deeplink":{"url":"%s"%siteurl,"__type":"Podcast.DeeplinkInterface.v1_0#DeeplinkClientState"}}, "playbackMetric" : playbackmetric, "extra":{}}       
         postdata = json.dumps(datadict).encode('utf-8')
         httpheaders['cookie'] = self.httpcookies
         httpheaders['content-length'] = postdata.__len__()
@@ -535,12 +542,16 @@ class AmazonBot(object):
         self.httpopener = self.buildopenerrandomproxy()
         self.httprequest = urllib.request.Request(requrl, data=postdata, headers=httpheaders)
         try:
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
             print("Successfully made request to Amazon playback URL")
         except:
             print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
             return {}
-        returndata = _decodeGzippedContent(self.httpresponse.read())
+        returndata = "{}"
+        try:
+            returndata = _decodeGzippedContent(self.httpresponse.read())
+        except:
+            print("Could not get content from amazon playback URL - Error: %s"%sys.exc_info()[1].__str__())
         try:
             returndict = json.loads(returndata.encode('utf-8'))
         except:
@@ -552,7 +563,8 @@ class AmazonBot(object):
     def getpandatoken(self, devicetype, epurl, cookies):
         pandaurl = "https://music.amazon.com/horizonte/pandaToken?deviceType=%s"%devicetype
         httpheaders = {'accept' : '*/*', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'pragma' : 'no-cache', 'referer' : epurl, 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua-platform' : 'Linux', 'sec-fetch-dest' : 'empty', 'sec-fetch-mode' : 'cors', 'sec-fetch-site' : 'same-origin', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'}
-        seedsesstoken = "SLu67mQaxSowz1izN2xQADeJFmrvbiQvS8PTT2ZSXHiI9FcI6A7iId+bx4TKlkzUZctsaUpNVzGEikeX4V0Q4G6rXHS6WcnBHdPXCK/KZo2c2CVGJPmrUycxEYVUmrUwKC37Xy5QeqJVuqSOvWc6n4YZ1wIEl3+ln4aeM0MzKsM1HwPsYW+mkf6WXsXpTA2f"
+        #seedsesstoken = "SLu67mQaxSowz1izN2xQADeJFmrvbiQvS8PTT2ZSXHiI9FcI6A7iId+bx4TKlkzUZctsaUpNVzGEikeX4V0Q4G6rXHS6WcnBHdPXCK/KZo2c2CVGJPmrUycxEYVUmrUwKC37Xy5QeqJVuqSOvWc6n4YZ1wIEl3+ln4aeM0MzKsM1HwPsYW+mkf6WXsXpTA2f"
+        seedsesstoken = "0LqsflkijLJIl8OjucajXcCdNbcTOHKzHWMFKeWrPacUkgV5iFfeGwJw+RFnHGgtZhpbhVU0m9XCEBrXslFDjPf0yvSxFLYSBhwoXYDXtFrALKaNvTSGF5jSsPaIeMdgqmbh+BxyjdotsFCiW7+5p7kaVz7jcR2Piu1hDrwx8eJsSTu27nx0Zjm8uW7VqH0e"
         sesslist = list(seedsesstoken)
         xylist = getrandomalphabet()
         randpos1 = random.randint(0, sesslist.__len__() - 1)
@@ -560,14 +572,14 @@ class AmazonBot(object):
         sesslist[randpos1] = xylist[0]
         sesslist[randpos2] = xylist[1]
         sesstoken = ''.join(sesslist)
-        httpheaders['cookie'] = cookies + "at_check=true; AMCVS_4A8581745834114C0A495E2B%40AdobeOrg=1; _mkto_trk=id:365-EFI-026&token:_mch-amazon.com-1661573838751-32752; mbox=session#47a708d83a684d8d9abc1df36d931572#1661575787|PC#47a708d83a684d8d9abc1df36d931572.31_0#1724818727; s_nr=1661573929087-New; s_lv=1661573929088; aws-mkto-trk=id%3A112-TZM-766%26token%3A_mch-aws.amazon.com-1657275509942-54640; aws_lang=en; s_campaign=ps%7C32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-data=%7B%22support%22%3A%221%22%7D; s_eVar60=32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-visitor-id=1662458172618-844632.31_0; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=fd772b08706faa75366f6dfeaf8882ecd58ed87be86bee84d2970db0053e8f75; AMCV_7742037254C95E840A4C98A6%40AdobeOrg=1585540135%7CMCIDTS%7C19243%7CMCMID%7C86123343969842436782305730671676825045%7CMCAAMLH-1663176902%7C12%7CMCAAMB-1663176902%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1662579302s%7CNONE%7CMCAID%7CNONE%7CMCSYNCSOP%7C411-19248%7CvVersion%7C4.4.0; s_sq=%5B%5BB%5D%5D; session-token=" + sesstoken + ";"
+        httpheaders['cookie'] = cookies + "at_check=true; AMCVS_4A8581745834114C0A495E2B%40AdobeOrg=1; _mkto_trk=id:365-EFI-026&token:_mch-amazon.com-1661573838751-32752; mbox=session#47a708d83a684d8d9abc1df36d931572#1661575787|PC#47a708d83a684d8d9abc1df36d931572.31_0#1724818727; s_nr=1661573929087-New; s_lv=1661573929088; aws-mkto-trk=id%3A112-TZM-766%26token%3A_mch-aws.amazon.com-1657275509942-54640; aws_lang=en; s_campaign=ps%7C32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-data=%7B%22support%22%3A%221%22%7D; s_eVar60=32f4fbd0-ffda-4695-a60c-8857fab7d0dd; aws-target-visitor-id=1662458172618-844632.31_0; awsc-color-theme=light; awsc-uh-opt-in=optedOut; noflush_awsccs_sid=2fa6f329955100ea8c9656162961f228b20b18c1e8c9abcb29a498d31f709f17; AMCV_7742037254C95E840A4C98A6%40AdobeOrg=1585540135%7CMCIDTS%7C19243%7CMCMID%7C86123343969842436782305730671676825045%7CMCAAMLH-1663176902%7C12%7CMCAAMB-1663176902%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1662579302s%7CNONE%7CMCAID%7CNONE%7CMCSYNCSOP%7C411-19248%7CvVersion%7C4.4.0; s_sq=%5B%5BB%5D%5D; session-token=" + sesstoken + ";"
         beginspacepattern = re.compile("^\s+")
         domainpattern = re.compile("Domain", re.IGNORECASE)
         expirespattern = re.compile("Expires", re.IGNORECASE)
         pathpattern = re.compile("Path", re.IGNORECASE)
         cookiestr = ""
         try:
-            response = requests.get(pandaurl, headers=httpheaders)
+            response = requests.get(pandaurl, headers=httpheaders, timeout=TIMEOUT_S)
             cookieslist = response.headers['set-cookie'].split(",")
             for c in cookieslist:
                 cparts = c.split(";")
@@ -605,7 +617,7 @@ class AmazonBot(object):
         payload = b"{}"
         amzrequest = urllib.request.Request(requesturl, data=payload, headers=httpheaders)
         try:
-            amzresponse = amzopener.open(amzrequest)
+            amzresponse = amzopener.open(amzrequest, timeout=TIMEOUT_S)
         except:
             amzresponse = None
             print("clearmusicqueue request failed: %s"%sys.exc_info()[1].__str__())
@@ -669,7 +681,7 @@ class SpotifyBot(object):
         requesturl = "https://open.spotify.com/search"
         self.httprequest = urllib.request.Request(requesturl, headers=self.httpheaders)
         try:
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
         except:
             print("Error making request to %s: %s"%(requesturl, sys.exc_info()[1].__str__()))
             return None
@@ -752,8 +764,9 @@ class SpotifyBot(object):
         if headers is None:
             headers = self.httpheaders
         self.httprequest = urllib.request.Request(requrl, headers=headers)
+        self.httpresponse = None
         try:
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
         except:
             print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
             return None
@@ -804,11 +817,15 @@ class SpotifyBot(object):
         if self.DEBUG:
             print("Requesting Track metadata from %s"%requesturl)
         try:
-            self.httpresponse = self.httpopener.open(epinforequest)
+            self.httpresponse = self.httpopener.open(epinforequest, timeout=TIMEOUT_S)
         except:
             print("Error making episode info request to %s: %s"%(requesturl, sys.exc_info()[1].__str__()))
             return None
-        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        self.httpcontent = "{}"
+        try:
+            self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        except:
+            print("Could not read content from episode info request - Error: %s"%sys.exc_info()[1].__str__())
         audioduration = 0
         try:
             jsondata = json.loads(self.httpcontent)
@@ -841,11 +858,15 @@ class SpotifyBot(object):
         if self.DEBUG:
             print("Making track media URL request from %s"%requesturl)
         try:
-            self.httpresponse = self.httpopener.open(trackinforequest)
+            self.httpresponse = self.httpopener.open(trackinforequest, timeout=TIMEOUT_S)
         except:
             print("Error making track info request to %s: %s"%(requesturl, sys.exc_info()[1].__str__()))
             return None
-        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        self.httpcontent = "{}"
+        try:
+            self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        except:
+            print("Could not get data containing cdnurl - Error: %s"%sys.exc_info()[1].__str__())
         cdnurl = ""
         try:
             jsondata = json.loads(self.httpcontent)
@@ -864,7 +885,7 @@ class SpotifyBot(object):
         batchheaders['content-length'] = batchpostdata.__len__()
         batchrequest = urllib.request.Request(batchurl, data=batchpostdata, headers=batchheaders)
         try:
-            batchresponse = self.httpopener.open(batchrequest)
+            batchresponse = self.httpopener.open(batchrequest, timeout=TIMEOUT_S)
             batchcontent = _decodeGzippedContent(batchresponse.read())
             batchjson = json.loads(batchcontent)
             if batchjson['status'] == 202:
@@ -880,7 +901,7 @@ class SpotifyBot(object):
         trackcontentrequest = urllib.request.Request(cdnurl, headers=httpheaders)
         trackcontent = b""
         try:
-            trackcontentresponse = self.httpopener.open(trackcontentrequest)
+            trackcontentresponse = self.httpopener.open(trackcontentrequest, timeout=TIMEOUT_S) # Wait for 60 secs only.
             trackcontent = trackcontentresponse.read()
         except:
             print("Error making track content request to %s: %s"%(cdnurl, sys.exc_info()[1].__str__()))
@@ -913,11 +934,15 @@ class SpotifyBot(object):
         self.httpopener = self.buildopenerrandomproxy()
         epinforequest = urllib.request.Request(episodeurl, headers=httpheaders)
         try:
-            self.httpresponse = self.httpopener.open(epinforequest)
+            self.httpresponse = self.httpopener.open(epinforequest,timeout=TIMEOUT_S) # Wait for a minute. If nothing comes out of it, quit.
         except:
             print("Error making episode info request to %s: %s"%(episodeurl, sys.exc_info()[1].__str__()))
             return ""
-        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        self.httpcontent = "{}"
+        try:
+            self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        except:
+            print("Could not retrieve episode URL - Error: %s"%sys.exc_info()[1].__str__())
         mp3url = ""
         self.ispodcast = True # This is set to True for itemtype='episode' and for those itemtype='track' whose content is actually a podcast episode arranged as a playlist.
         try:
@@ -969,11 +994,15 @@ class SpotifyBot(object):
         self.httpopener = self.buildopenerrandomproxy()
         clienttokenrequest = urllib.request.Request(requesturl, data=databytes, headers=httpheaders)
         try:
-            self.httpresponse = self.httpopener.open(clienttokenrequest)
+            self.httpresponse = self.httpopener.open(clienttokenrequest, timeout=TIMEOUT_S)
         except:
             print("Error making client token request to %s: %s"%(requesturl, sys.exc_info()[1].__str__()))
             return ""
-        self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        self.httpcontent = "{}"
+        try:
+            self.httpcontent = _decodeGzippedContent(self.httpresponse.read())
+        except:
+            print("Could not get content for client token - Error: %s"%sys.exc_info()[1].__str__())
         try:
             respdict = json.loads(self.httpcontent)
             clienttoken = respdict['granted_token']['token']
@@ -987,7 +1016,10 @@ class SpotifyBot(object):
         if self.DEBUG:
             print("Spotify Cookie: %s"%self.httpheaders['cookie'])
         self.makehttprequest(epurl, headers=httpheaders)
-        content = self.httpresponse.read() # Actually, we don't need the content.
+        try:
+            content = self.httpresponse.read() # Actually, we don't need the content.
+        except:
+            content = ""
         return content
 
 
@@ -1063,7 +1095,7 @@ class AppleBot(object):
         self.httpopener = self.buildopenerrandomproxy()
         self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
         try:
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
         except:
             print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
             return None
@@ -1109,11 +1141,14 @@ class AppleBot(object):
         resourceurl = ""
         if aps:
             resourceurl = aps.groups()[0]
+        if resourceurl == "":
+            print("Can't download apple podcast - Error: URL is ''")
+            return None
         self.httpopener = self.buildopenerrandomproxy()
         #print("Resource URL: %s"%resourceurl)
         self.httprequest = urllib.request.Request(resourceurl, headers=self.httpheaders)
         try:
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
         except:
             print("Error making request to %s: %s"%(resourceurl, sys.exc_info()[1].__str__()))
             return None
@@ -1124,7 +1159,7 @@ class AppleBot(object):
             location = ""
         try:
             self.httprequest = urllib.request.Request(location, headers=self.httpheaders)
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
             content = self.httpresponse.read()
             redirecturlpattern = re.compile("href=\"([^\"]+)\"", re.DOTALL|re.IGNORECASE)
             rps = re.search(redirecturlpattern, str(content))
@@ -1140,7 +1175,7 @@ class AppleBot(object):
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity;q=1, *;q=0', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://podcasts.apple.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'no-cors', 'Sec-Fetch-Dest' : 'audio', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'range' : 'bytes=0-'}
         try:
             self.httprequest = urllib.request.Request(mediaurl, headers=httpheaders)
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
             mediacontent = self.httpresponse.read()
         except:
             print("Error in making media request for Apple: %s"%sys.exc_info()[1].__str__())
@@ -1168,7 +1203,7 @@ class AppleBot(object):
         opener = self.buildopenerrandomproxy()
         request = urllib.request.Request(requesturl, data=postdata, headers=httpheaders)
         try:
-            response = opener.open(request)
+            response = opener.open(request, timeout=TIMEOUT_S)
         except:
             print("Error sending request to xp_amp_web_exp (Apple): %s"%sys.exc_info()[1].__str__())
             response = None
@@ -1184,6 +1219,7 @@ class BuzzBot(object):
         self.cleanupmedia = True
         self.platformonly = None
         self.parent = weakref.ref(parent)
+        self.quitflag = False
         self.msglabeltext = parent.msglabeltext
         self.proxies = {'https' : proxieslist,}
         self.amazonkey = amazonkey
@@ -1296,7 +1332,7 @@ class BuzzBot(object):
             self.logger.write("Making GET request to %s\n"%self.requesturl)
         self.httprequest = urllib.request.Request(self.requesturl, headers=self.httpheaders)
         try:
-            self.httpresponse = self.httpopener.open(self.httprequest)
+            self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
         except:
             print("Error making request to %s: %s"%(self.requesturl, sys.exc_info()[1].__str__()))
             if self.logging:
@@ -1311,6 +1347,8 @@ class BuzzBot(object):
 
     def _getCookieFromResponse(cls, lastHttpResponse):
         cookies = ""
+        if lastHttpResponse is None:
+            return cookies
         responseCookies = lastHttpResponse.getheader("Set-Cookie")
         pathPattern = re.compile(r"Path=/;", re.IGNORECASE)
         domainPattern = re.compile(r"Domain=[^;,]+(;|,)", re.IGNORECASE)
@@ -1428,6 +1466,9 @@ class BuzzBot(object):
                 if self.logging:
                     self.logger.write("APPLE ITERATION #%s =======================\n"%ctr)
                 for pclink in podcastlinks:
+                    if self.quitflag == True:
+                        print("Quit signal received. Terminating apple child.")
+                        return None
                     resp = applebot.requestwebexp(siteurl, pageid, cookies)
                     if resp is not None:
                         if applebot.DEBUG:
@@ -1527,6 +1568,9 @@ class BuzzBot(object):
                         self.msglabeltext.set(curmessagecontent)
                     spotmp3list.append(epmp3url)
                 for epurl in spotmp3list:
+                    if self.quitflag == True:
+                        print("Quit signal received. Terminating spotify child.")
+                        return None
                     if self.humanize:
                         ht = getrandominterval(5)
                         time.sleep(ht)
@@ -1536,6 +1580,8 @@ class BuzzBot(object):
                         self.logger.write("Got Spotify mp3 from %s\n"%epurl)
                     if self.DEBUG:
                         if spotbot.ispodcast == True:
+                            if type(content) == str or content is None:
+                                continue # We are expecting mp3 content, but if there is an error in the respone, we might get a string.
                             t = str(int(time.time() * 1000))
                             fs = open(self.dumpdir + os.path.sep + "spotify_%s.mp3"%t, "wb")
                             fs.write(content)
@@ -1744,6 +1790,9 @@ class BuzzBot(object):
                     self.logger.write("AMAZON ITERATION #%s =======================\n"%ctr)
                 ipctr = 0
                 for mediaurl in mediaurlslist:
+                    if self.quitflag == True:
+                        print("Quit signal received. Terminating amazon child.")
+                        return None
                     httpheaders = {}
                     httpheaders['Referer'] = "https://music.amazon.com/"
                     httpheaders['range'] = "bytes=0-"
@@ -1768,7 +1817,7 @@ class BuzzBot(object):
                     amzopener = self.buildopenergivenproxy(proxyipport)
                     amzrequest = urllib.request.Request(mediaurl, headers=httpheaders)
                     try:
-                        response = amzopener.open(amzrequest)
+                        response = amzopener.open(amzrequest, timeout=TIMEOUT_S)
                     except:
                         print("Error fetching media for Amazon podcast: %s"%sys.exc_info()[1].__str__())
                         response = None
@@ -1996,6 +2045,7 @@ class GUI(object):
 
 
     def startbot(self):
+        self.runbutton.config(state=DISABLED)
         self.targeturl = self.targeturlentry.get()
         if self.targeturl == "":
             self.messagelabel.configure(foreground="red", width=400)
@@ -2123,22 +2173,30 @@ class GUI(object):
         curmessagecontent = self.msglabeltext.get()
         curmessagecontent += "\n\nFinished hitting targets."
         self.msglabeltext.set(curmessagecontent)
+        self.runbutton.config(state=ACTIVE)
         return True
 
 
     def closebot(self):
+        try:
+            self.buzz.quitflag = True
+        except:
+            print("No object called 'buzz'")
         if self.rt is not None:
             self.rt.join()
         if self.buzz is not None and self.buzz.logger is not None:
             self.buzz.logger.close()
+        self.runbutton.config(state=ACTIVE)
         sys.exit()
 
 
     def stopbot(self):
+        """
         if os.name == 'posix':
             signal.SIGINT # On linux or macOSX
         else:
             signal.CTRL_C_EVENT # On windows family
+        """
         self.closebot()
 
 
