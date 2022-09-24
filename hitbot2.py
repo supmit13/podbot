@@ -218,6 +218,8 @@ class AmazonBot(object):
 
 
     def makehttprequest(self, requrl):
+        if requrl == '' or requrl is None:
+            return None
         self.httpopener = self.buildopenerrandomproxy()
         self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
         session = HTMLSession()
@@ -760,6 +762,8 @@ class SpotifyBot(object):
 
 
     def makehttprequest(self, requrl, headers=None):
+        if requrl == '' or requrl is None:
+            return None
         self.httpopener = self.buildopenerrandomproxy()
         if headers is None:
             headers = self.httpheaders
@@ -1092,6 +1096,8 @@ class AppleBot(object):
 
 
     def makehttprequest(self, requrl):
+        if requrl == '' or requrl is None:
+            return None
         self.httpopener = self.buildopenerrandomproxy()
         self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
         try:
