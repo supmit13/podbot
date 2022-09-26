@@ -231,9 +231,19 @@ class AmazonBot(object):
                 if self.DEBUG:
                     print("Proxy used (Amazon): %s"%self.proxies['https'][httpsrandomctr])
             except:
-                self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
+                try:
+                    self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
+                except:
+                    if self.DEBUG:
+                        print("Request to '%s' failed: %s"%(requrl, sys.exc_info()[1].__str__()))
+                    return None
         else:
-            self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
+            try:
+                self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
+            except:
+                if self.DEBUG:
+                    print("Request to '%s' failed: %s"%(requrl, sys.exc_info()[1].__str__()))
+                return None
         return self.httpresponse
 
 
@@ -2179,6 +2189,14 @@ class GUI(object):
         curmessagecontent = self.msglabeltext.get()
         curmessagecontent += "\n\nFinished hitting targets."
         self.msglabeltext.set(curmessagecontent)
+        # Write this message in history
+        historyfile = os.getcwd() + os.path.sep + "hitbot2_" + time.strftime("%Y%m%d%H%M%S",time.localtime()) + ".history"
+        if not os.path.exists(historyfile):
+            fh = open(historyfile, "w")
+        else:
+            fh = open(historyfile, "a")
+        fh.write(curmessagecontent + "\n=================================\n\n")
+        fh.close()
         self.runbutton.config(state=ACTIVE)
         return True
 
@@ -2190,6 +2208,15 @@ class GUI(object):
             print("No object called 'buzz'")
         if self.rt is not None:
             self.rt.join()
+        # Write this message in history
+        curmessagecontent = self.msglabeltext.get()
+        historyfile = os.getcwd() + os.path.sep + "hitbot2_" + time.strftime("%Y%m%d%H%M%S",time.localtime()) + ".history"
+        if not os.path.exists(historyfile):
+            fh = open(historyfile, "w")
+        else:
+            fh = open(historyfile, "a")
+        fh.write(curmessagecontent + "\n=================================\n\n")
+        fh.close()
         if self.buzz is not None and self.buzz.logger is not None:
             self.buzz.logger.close()
         self.runbutton.config(state=ACTIVE)
