@@ -22,7 +22,65 @@
     <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
     <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
 <![endif]-->
-   
+<script type='text/javascript'>
+    function addproxy(){
+	addwin = window.open("/hitapp/addproxies/", "", "toolbar=yes,scrollbars=yes,resizable=yes,width=700,height=500");
+    }
+
+    function editproxy(proxyurl){
+	let formData = new FormData();
+        csrf = document.frmmanageproxies.csrfmiddlewaretoken.value;
+        formData.append("proxyurl", proxyurl);
+        formData.append("csrfmiddlewaretoken", csrf);
+	var xmlhttp;
+	  if (window.XMLHttpRequest){
+	    xmlhttp=new XMLHttpRequest();
+	  }
+	  else{
+	    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	  }
+	  // Register the handler
+	  xmlhttp.onreadystatechange = function(){
+	  if(xmlhttp.readyState == 4 && xmlhttp.status==200){
+	    //alert(xmlhttp.responseText);
+	    newwin = window.open("", "", "toolbar=yes,scrollbars=yes,resizable=yes,width=700,height=500");
+    	    newwin.document.write(xmlhttp.responseText);
+	  }
+	  };
+	  xmlhttp.open("POST", '/hitapp/editproxies/', true);
+	  xmlhttp.setRequestHeader("X-CSRFToken", csrf);
+	  xmlhttp.send(formData);
+    }
+
+    function deleteproxy(proxyurl){
+	let formData = new FormData();
+        csrf = document.frmmanageproxies.csrfmiddlewaretoken.value;
+        formData.append("proxyurl", proxyurl);
+        formData.append("csrfmiddlewaretoken", csrf);
+	var xmlhttp;
+	  if (window.XMLHttpRequest){
+	    xmlhttp=new XMLHttpRequest();
+	  }
+	  else{
+	    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	  }
+	  // Register the handler
+	  xmlhttp.onreadystatechange = function(){
+	  if(xmlhttp.readyState == 4 && xmlhttp.status==200){
+	    //alert(xmlhttp.responseText);
+	    newwin = window.open("", "", "toolbar=yes,scrollbars=yes,resizable=yes,width=700,height=500");
+    	    newwin.document.write(xmlhttp.responseText);
+	  }
+	  };
+	  xmlhttp.open("POST", '/hitapp/deleteproxies/', true);
+	  xmlhttp.setRequestHeader("X-CSRFToken", csrf);
+	  xmlhttp.send(formData);
+    }
+
+    function searchproxies(){
+
+    }
+</script>
 </head>
 
 <body>
@@ -96,7 +154,7 @@
                             <a class="nav-link text-muted" href="javascript:void(0)"><i class="ti-search"></i></a>
                             <form class="app-search" style="display: none;">
                                 <input type="text" class="form-control" placeholder="Search"> <a
-                                    class="srh-btn" href="#/" onclick="javascript:searchhits();"><i class="ti-close"></i></a> </form>
+                                    class="srh-btn" href="#/" onclick="javascript:searchproxies();"><i class="ti-close"></i></a> </form>
                         </li>
                     </ul>
 
@@ -131,7 +189,7 @@
                     <ul id="sidebarnav">
                         <!-- User Profile-->
                         <li class="sidebar-item"> <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                href="/hitapp/adduser/" aria-expanded="false"><i class="mdi me-2 mdi-gauge"></i><span
+                                href="/feedman/adduser/" aria-expanded="false"><i class="mdi me-2 mdi-gauge"></i><span
                                     class="hide-menu">Add User</span></a></li>
                         <li class="sidebar-item"> <a class="sidebar-link waves-effect waves-dark sidebar-link"
                                 href="/hitapp/manageproxies/" aria-expanded="false">
@@ -139,7 +197,7 @@
                         </li>
                         <li class="sidebar-item"> <a class="sidebar-link waves-effect waves-dark sidebar-link"
                                 href="/hitapp/dashboard/" aria-expanded="false"><i class="mdi me-2 mdi-table"></i><span
-                                    class="hide-menu">Dashboard</span></a>
+                                    class="hide-menu">Dashboard</span></a> 
 			</li>
                         <li class="sidebar-item"> <a class="sidebar-link waves-effect waves-dark sidebar-link"
                                 href="/hitapp/runbot/" aria-expanded="false"><i
@@ -172,19 +230,10 @@
                 <div class="row">
                     <div class="col-4 link-wrap">
                         <!-- item-->
-                        <a href="/hitapp/settings/" class="link" data-toggle="tooltip" title="" data-original-title="Settings"><i
+                        <a href="/hitapp/addproxy/" class="link" data-toggle="tooltip" title="" data-original-title="Add Proxy"><i
                                 class="ti-settings"></i></a>
                     </div>
-                    <div class="col-4 link-wrap">
-                        <!-- item-->
-                        <a href="/hitapp/sendmail/" class="link" data-toggle="tooltip" title="" data-original-title="Email"><i
-                                class="mdi mdi-gmail"></i></a>
-                    </div>
-                    <div class="col-4 link-wrap">
-                        <!-- item-->
-                        <a href="/hitapp/logout/" class="link" data-toggle="tooltip" title="" data-original-title="Logout"><i
-                                class="mdi mdi-power"></i></a>
-                    </div>
+                    
                 </div>
             </div>
         </aside>
@@ -244,64 +293,34 @@
                     <div class="col-sm-12">
                         <div class="card">
                             <div class="card-body">
-                                <!-- <h4 class="card-title">Basic Table</h4>
-                                <h6 class="card-subtitle">Add class <code>.table</code></h6> -->
-                                <div class="table-responsive"><form name='frmhistory' id='frmhistory' method='POST'>
+                                <!-- <h4 class="card-title">Basic Table</h4> -->
+                                <h6 class="card-subtitle"><a href='#/' onclick='javascript:addproxy();'>Add Proxy</a> </h6>
+                                <div class="table-responsive"><form name='frmmanageproxies' id='frmmanageproxies' method='POST'>
 				    {% csrf_token %}
                                     <table class="table user-table" id='feeds'>
                                         <thead>
                                             <tr>
                                                 <th class="border-top-0" style="white-space:nowrap;">ID</th>
-                                                <th class="border-top-0" style="white-space:nowrap;">Platform</th>
-                                                <th class="border-top-0" style="white-space:nowrap;">URL</th>
-						<th class="border-top-0" style="white-space:nowrap;">Target Count</th>
-						<th class="border-top-0" style="white-space:nowrap;">Actual Count</th>
-                                                <th class="border-top-0" style="white-space:nowrap;">Start Time</th>
-						<th class="border-top-0" style="white-space:nowrap;">End Time</th>
-						<th class="border-top-0" style="white-space:nowrap;">User</th>
-						<th class="border-top-0" style="white-space:nowrap;">Debug</th>
-						<th class="border-top-0" style="white-space:nowrap;">Humanize</th>
-						<th class="border-top-0" style="white-space:nowrap;">Logging</th>
-						<th class="border-top-0" style="white-space:nowrap;">Cleanup</th>
+                                                <th class="border-top-0" style="white-space:nowrap;">Proxy URL</th>
+                                                <th class="border-top-0" style="white-space:nowrap;">Proxy Provider</th>
+						<th class="border-top-0" style="white-space:nowrap;">Proxy Type</th>
+						<th class="border-top-0" style="white-space:nowrap;">Action</th>
 						
                                             </tr>
                                         </thead>
                                         <tbody>
-					    {% for hit in hits %}
+					    {% for proxyurl, proxyinfo in proxies.items %}
                                             <tr>
-                                                <td style="white-space:nowrap;{{hit.color}}">{{forloop.counter}}</td>
-                                                <td style="white-space:nowrap;{{hit.color}}">{{hit.platform}}</td>
-                                                <td style="white-space:nowrap;{{hit.color}}">{{hit.targeturl}}</td>
-                                                <td style="white-space:nowrap;{{hit.color}}">{{hit.targetcount}}</td>
-						<td style="white-space:nowrap;{{hit.color}}">{{hit.actualcount}}</td>
-						<td style="white-space:nowrap;{{hit.color}}">{{hit.starttime}}</td>
-						<td style="white-space:nowrap;{{hit.color}}">{{hit.endtime}}</td>
-						<td style="white-space:nowrap;{{hit.color}}">{{hit.username}}</td>
-                                                {% if hit.debug == True %}
-						<td style="white-space:nowrap;"><img src='/static/images/check.png' height="20" width="20"></td>
-						{% else %}
-						<td style="white-space:nowrap;"><img src='/static/images/cross.png' height="20" width="20"></td>
-						{% endif %}
-						{% if hit.humanize == True %}
-						<td style="white-space:nowrap;"><img src='/static/images/check.png' height="20" width="20"></td>
-						{% else %}
-						<td style="white-space:nowrap;"><img src='/static/images/cross.png' height="20" width="20"></td>
-						{% endif %}
-						{% if hit.logging == True %}
-						<td style="white-space:nowrap;"><img src='/static/images/check.png' height="20" width="20"></td>
-						{% else %}
-						<td style="white-space:nowrap;"><img src='/static/images/cross.png' height="20" width="20"></td>
-						{% endif %}
-						{% if hit.cleanup == True %}
-						<td style="white-space:nowrap;"><img src='/static/images/check.png' height="20" width="20"></td>
-						{% else %}
-						<td style="white-space:nowrap;"><img src='/static/images/cross.png' height="20" width="20"></td>
-						{% endif %}
+                                                <td style="white-space:nowrap;{{proxyinfo.3}}">{{forloop.counter}}</td>
+                                                <td style="white-space:nowrap;{{proxyinfo.3}}">{{proxyurl}}</td>
+                                                <td style="white-space:nowrap;{{proxyinfo.3}}">{{proxyinfo.0}}</td>
+                                                <td style="white-space:nowrap;{{proxyinfo.3}}">{{proxyinfo.1}}</td>
+						<td style="white-space:nowrap;{{proxyinfo.3}}"><a href='#/' onclick="javascript:editproxy('{{proxyurl}}')">Edit</a> / <a href='#/' onclick="javascript:deleteproxy('{{proxyurl}}');">Delete</a></td>
 						
                                             </tr>
 					    {% endfor %}
-                                            {% if hits|length == 0 %}
-					    <tr><td colspan=8 align="center">There are no hits in DB</td></tr>
+                                            {% if proxies|length == 0 %}
+					    <tr><td colspan=8 align="center">There are no proxies in DB</td></tr>
 					    {% endif %}
                                         </tbody>
                                     </table>

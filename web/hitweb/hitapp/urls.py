@@ -24,6 +24,13 @@ urlpatterns = [
     path('logout/', views.logout, name='logout'),
     path('login/', views.showlogin, name='showlogin'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('runbot/', views.runhitbot, name='runhitbot'),
+    path('manageproxies/', views.manageproxies, name='manageproxies'),
+    path('addproxies/', views.addproxies, name='addproxies'),
+    path('editproxies/', views.editproxies, name='editproxies'),
+    path('deleteproxies/', views.deleteproxy, name='deleteproxy'),
+    path('saveproxies/', views.saveproxy, name='saveproxy'),
+    path('managekeys/', views.managekeys, name='managekeys'),
 ]
 
 

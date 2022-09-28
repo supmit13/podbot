@@ -6,23 +6,66 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <!-- Tell the browser to be responsive to screen width -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="keywords" content="Tennis, lawn tennis, Wimbledon">
+    <meta name="keywords"
+        content="wrappixel, admin dashboard, html css dashboard, web dashboard, bootstrap 5 admin, bootstrap 5, css3 dashboard, bootstrap 5 dashboard, materialpro admin bootstrap 5 dashboard, frontend, responsive bootstrap 5 admin template, materialpro admin lite design, materialpro admin lite dashboard bootstrap 5 dashboard template">
     <meta name="description"
-        content="ITF Tennis Feeds Management">
+        content="Material Pro Lite is powerful and clean admin dashboard template, inpired from Bootstrap Framework">
     <meta name="robots" content="noindex,nofollow">
-    <title>Hits Manager</title>
+    <title>Add/Edit Proxy</title>
     <link rel="canonical" href="https://www.wrappixel.com/templates/materialpro-lite/" />
     <!-- Favicon icon -->
-    <link rel="icon" type="image/png" sizes="16x16" href="/static/assets/images/favicon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../assets/images/favicon.png">
     <!-- Custom CSS -->
-    <link href="/static/css/style.min.css" rel="stylesheet">
+    <link href="css/style.min.css" rel="stylesheet">
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
     <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
     <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
 <![endif]-->
-   
+
+    <script type='text/javascript'>
+    function saveproxyinfo(){
+	let formData = new FormData();
+        csrf = document.frmproxy.csrfmiddlewaretoken.value;
+        proxyip = document.frmproxy.proxyip.value;
+        proxyport = document.frmproxy.proxyport.value;
+        proxytype = document.frmproxy.proxytype.options[document.frmproxy.proxytype.options.selectedIndex].value;
+        proxyprovider = document.frmproxy.proxyprovider.value;
+	operation = document.frmproxy.operation.value;
+	formData.append("proxyip", proxyip);
+	formData.append("proxyport", proxyport);
+	formData.append("proxytype", proxytype);
+	formData.append("proxyprovider", proxyprovider);
+	formData.append("operation", operation);
+	formData.append("csrfmiddlewaretoken", csrf);
+	var xmlhttp;
+	  if (window.XMLHttpRequest){
+	    xmlhttp=new XMLHttpRequest();
+	  }
+	  else{
+	    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	  }
+	  // Register the handler
+	  xmlhttp.onreadystatechange = function(){
+	  if(xmlhttp.readyState == 4 && xmlhttp.status==200){
+	    //alert(xmlhttp.responseText);
+	    statusdiv = document.getElementById('proxystatus');
+	    statusdiv.innerHTML = "<p style='color:0000AA'>" + xmlhttp.responseText + "</p>";
+	  }
+	  };
+	  if(operation == "Add"){
+	      xmlhttp.open("POST", '/hitapp/addproxies/', true);
+	  }
+	  else if(operation == "Edit"){
+	      currentproxyurl = document.frmproxy.currentproxyurl.value;
+	      formData.append("currentproxyurl", currentproxyurl);
+	      xmlhttp.open("POST", '/hitapp/saveproxies/', true);
+	  }
+	  xmlhttp.setRequestHeader("X-CSRFToken", csrf);
+	  xmlhttp.send(formData);
+    }
+    </script>
 </head>
 
 <body>
@@ -49,19 +92,19 @@
                     <!-- ============================================================== -->
                     <!-- Logo -->
                     <!-- ============================================================== -->
-                    <a class="navbar-brand ms-4" href="/hitapp/dashboard/">
+                    <a class="navbar-brand ms-4" href="index.html">
                         <!-- Logo icon -->
                         <b class="logo-icon">
                             <!--You can put here icon as well // <i class="wi wi-sunset"></i> //-->
                             <!-- Dark Logo icon -->
-                            <img src="/static/assets/images/logo-light-icon.png" alt="homepage" class="dark-logo" />
+                            <img src="../assets/images/logo-light-icon.png" alt="homepage" class="dark-logo" />
 
                         </b>
                         <!--End Logo icon -->
                         <!-- Logo text -->
                         <span class="logo-text">
                             <!-- dark Logo text -->
-                            <img src="/static/assets/images/logo-light-text.png" alt="homepage" class="dark-logo" />
+                            <img src="../assets/images/logo-light-text.png" alt="homepage" class="dark-logo" />
 
                         </span>
                     </a>
@@ -95,8 +138,8 @@
                         <li class="nav-item search-box">
                             <a class="nav-link text-muted" href="javascript:void(0)"><i class="ti-search"></i></a>
                             <form class="app-search" style="display: none;">
-                                <input type="text" class="form-control" placeholder="Search"> <a
-                                    class="srh-btn" href="#/" onclick="javascript:searchhits();"><i class="ti-close"></i></a> </form>
+                                <input type="text" class="form-control" placeholder="Search &amp; enter"> <a
+                                    class="srh-btn"><i class="ti-close"></i></a> </form>
                         </li>
                     </ul>
 
@@ -109,7 +152,7 @@
                         <!-- ============================================================== -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle text-muted waves-effect waves-dark" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="/static/assets/images/users/1.jpg" alt="user" class="profile-pic me-2">{{username}}
+                                <img src="../assets/images/users/1.jpg" alt="user" class="profile-pic me-2">Markarn Doe
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown"></ul>
                         </li>
@@ -130,38 +173,12 @@
                 <nav class="sidebar-nav">
                     <ul id="sidebarnav">
                         <!-- User Profile-->
-                        <li class="sidebar-item"> <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                href="/hitapp/adduser/" aria-expanded="false"><i class="mdi me-2 mdi-gauge"></i><span
-                                    class="hide-menu">Add User</span></a></li>
-                        <li class="sidebar-item"> <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                href="/hitapp/manageproxies/" aria-expanded="false">
-                                <i class="mdi me-2 mdi-account-check"></i><span class="hide-menu">Manage Proxies</span></a>
-                        </li>
-                        <li class="sidebar-item"> <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                href="/hitapp/dashboard/" aria-expanded="false"><i class="mdi me-2 mdi-table"></i><span
-                                    class="hide-menu">Dashboard</span></a>
-			</li>
-                        <li class="sidebar-item"> <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                href="/hitapp/runbot/" aria-expanded="false"><i
-                                    class="mdi me-2 mdi-emoticon"></i><span class="hide-menu">Run Bot</span></a> 
-			</li>
-                        <li class="sidebar-item"> <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                href="/hitapp/managekeys/" aria-expanded="false"><i class="mdi me-2 mdi-earth"></i><span
-                                    class="hide-menu">Manage Keys</span></a>
-			</li>
-                        <li class="sidebar-item"> <!-- <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                href="pages-blank.html" aria-expanded="false"><i
-                                    class="mdi me-2 mdi-book-open-variant"></i><span class="hide-menu">Blank</span></a> -->
-                        </li>
-                        <li class="sidebar-item"> <!-- <a class="sidebar-link waves-effect waves-dark sidebar-link"
-                                href="pages-error-404.html" aria-expanded="false"><i class="mdi me-2 mdi-help-circle"></i><span
-                                    class="hide-menu">Error 404</span></a> -->
-                        </li>
-                        <!-- <li class="text-center p-20 upgrade-btn">
-                            <a href="https://www.wrappixel.com/templates/materialpro/"
+                        
+                        <li class="text-center p-20 upgrade-btn">
+                            <!-- <a href="https://www.wrappixel.com/templates/materialpro/"
                                 class="btn btn-warning text-white mt-4" target="_blank">Upgrade to
-                                Pro</a>
-                        </li> -->
+                                Pro</a> -->
+                        </li>
                     </ul>
 
                 </nav>
@@ -170,21 +187,21 @@
             <!-- End Sidebar scroll-->
             <div class="sidebar-footer">
                 <div class="row">
-                    <div class="col-4 link-wrap">
-                        <!-- item-->
-                        <a href="/hitapp/settings/" class="link" data-toggle="tooltip" title="" data-original-title="Settings"><i
+                    <!-- <div class="col-4 link-wrap">
+
+                        <a href="" class="link" data-toggle="tooltip" title="" data-original-title="Settings"><i
                                 class="ti-settings"></i></a>
                     </div>
                     <div class="col-4 link-wrap">
-                        <!-- item-->
-                        <a href="/hitapp/sendmail/" class="link" data-toggle="tooltip" title="" data-original-title="Email"><i
+
+                        <a href="" class="link" data-toggle="tooltip" title="" data-original-title="Email"><i
                                 class="mdi mdi-gmail"></i></a>
                     </div>
                     <div class="col-4 link-wrap">
-                        <!-- item-->
-                        <a href="/hitapp/logout/" class="link" data-toggle="tooltip" title="" data-original-title="Logout"><i
+
+                        <a href="" class="link" data-toggle="tooltip" title="" data-original-title="Logout"><i
                                 class="mdi mdi-power"></i></a>
-                    </div>
+                    </div> -->
                 </div>
             </div>
         </aside>
@@ -198,37 +215,28 @@
             <!-- ============================================================== -->
             <!-- Bread crumb and right sidebar toggle -->
             <!-- ============================================================== -->
-            <div class="page-breadcrumb">
+            <!-- <div class="page-breadcrumb">
                 <div class="row align-items-center">
                     <div class="col-md-6 col-8 align-self-center">
-                        <h3 class="page-title mb-0 p-0"></h3>
-			<div class="input-group rounded">
-			<form name='frmaction' id='frmaction' method='POST' class='form-group'>
-			  <input type="search" class="form-control rounded" placeholder="Search By Title" aria-label="Search" aria-describedby="search-addon" id="searchbox" />
-			  <span class="input-group-text border-0" id="search-addon" onclick="javascript:searchtitles();">
-			    <i class="fas fa-search"></i>
-			  </span>
-			  <span id="waiting" style="display:none;"></span>
-			</form>
-			</div>
+                        <h3 class="page-title mb-0 p-0">Table</h3>
                         <div class="d-flex align-items-center">
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb">
-                                    <!-- <li class="breadcrumb-item"><a href="#">Home</a></li>
-                                    <li class="breadcrumb-item active" aria-current="page">Table</li> -->
+                                    <li class="breadcrumb-item"><a href="#">Home</a></li>
+                                    <li class="breadcrumb-item active" aria-current="page">Table</li>
                                 </ol>
                             </nav>
                         </div>
                     </div>
                     <div class="col-md-6 col-4 align-self-center">
                         <div class="text-end upgrade-btn">
-                            <!-- <a href="https://www.wrappixel.com/templates/materialpro/"
+                            <a href="https://www.wrappixel.com/templates/materialpro/"
                                 class="btn btn-danger d-none d-md-inline-block text-white" target="_blank">Upgrade to
-                                Pro</a> -->
+                                Pro</a>
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> -->
             <!-- ============================================================== -->
             <!-- End Bread crumb and right sidebar toggle -->
             <!-- ============================================================== -->
@@ -244,86 +252,75 @@
                     <div class="col-sm-12">
                         <div class="card">
                             <div class="card-body">
-                                <!-- <h4 class="card-title">Basic Table</h4>
-                                <h6 class="card-subtitle">Add class <code>.table</code></h6> -->
-                                <div class="table-responsive"><form name='frmhistory' id='frmhistory' method='POST'>
+                                <h4 class="card-title">{{operation}} Proxy</h4>
+                                <!-- <h6 class="card-subtitle">Add class <code>.table</code></h6> -->
+                                <div class="table-responsive">
+				    <form name='frmproxy' id='frmproxy' method='POST' action=''>
 				    {% csrf_token %}
-                                    <table class="table user-table" id='feeds'>
-                                        <thead>
-                                            <tr>
-                                                <th class="border-top-0" style="white-space:nowrap;">ID</th>
-                                                <th class="border-top-0" style="white-space:nowrap;">Platform</th>
-                                                <th class="border-top-0" style="white-space:nowrap;">URL</th>
-						<th class="border-top-0" style="white-space:nowrap;">Target Count</th>
-						<th class="border-top-0" style="white-space:nowrap;">Actual Count</th>
-                                                <th class="border-top-0" style="white-space:nowrap;">Start Time</th>
-						<th class="border-top-0" style="white-space:nowrap;">End Time</th>
-						<th class="border-top-0" style="white-space:nowrap;">User</th>
-						<th class="border-top-0" style="white-space:nowrap;">Debug</th>
-						<th class="border-top-0" style="white-space:nowrap;">Humanize</th>
-						<th class="border-top-0" style="white-space:nowrap;">Logging</th>
-						<th class="border-top-0" style="white-space:nowrap;">Cleanup</th>
-						
-                                            </tr>
-                                        </thead>
+                                    <table class="table user-table">
+                                        
                                         <tbody>
-					    {% for hit in hits %}
                                             <tr>
-                                                <td style="white-space:nowrap;{{hit.color}}">{{forloop.counter}}</td>
-                                                <td style="white-space:nowrap;{{hit.color}}">{{hit.platform}}</td>
-                                                <td style="white-space:nowrap;{{hit.color}}">{{hit.targeturl}}</td>
-                                                <td style="white-space:nowrap;{{hit.color}}">{{hit.targetcount}}</td>
-						<td style="white-space:nowrap;{{hit.color}}">{{hit.actualcount}}</td>
-						<td style="white-space:nowrap;{{hit.color}}">{{hit.starttime}}</td>
-						<td style="white-space:nowrap;{{hit.color}}">{{hit.endtime}}</td>
-						<td style="white-space:nowrap;{{hit.color}}">{{hit.username}}</td>
-                                                {% if hit.debug == True %}
-						<td style="white-space:nowrap;"><img src='/static/images/check.png' height="20" width="20"></td>
-						{% else %}
-						<td style="white-space:nowrap;"><img src='/static/images/cross.png' height="20" width="20"></td>
-						{% endif %}
-						{% if hit.humanize == True %}
-						<td style="white-space:nowrap;"><img src='/static/images/check.png' height="20" width="20"></td>
-						{% else %}
-						<td style="white-space:nowrap;"><img src='/static/images/cross.png' height="20" width="20"></td>
-						{% endif %}
-						{% if hit.logging == True %}
-						<td style="white-space:nowrap;"><img src='/static/images/check.png' height="20" width="20"></td>
-						{% else %}
-						<td style="white-space:nowrap;"><img src='/static/images/cross.png' height="20" width="20"></td>
-						{% endif %}
-						{% if hit.cleanup == True %}
-						<td style="white-space:nowrap;"><img src='/static/images/check.png' height="20" width="20"></td>
-						{% else %}
-						<td style="white-space:nowrap;"><img src='/static/images/cross.png' height="20" width="20"></td>
-						{% endif %}
-						
+                                                <td>Proxy IP</td>
+                                                <td>&nbsp;</td>
+                                                <td><input type='text' name='proxyip' value='{{proxyip}}' maxlength=16></td>
+                                                <td>&nbsp;</td>
                                             </tr>
-					    {% endfor %}
-                                            {% if hits|length == 0 %}
-					    <tr><td colspan=8 align="center">There are no hits in DB</td></tr>
-					    {% endif %}
+                                            <tr>
+                                                <td>Proxy Port</td>
+                                                <td>&nbsp;</td>
+                                                <td><input type='text' name='proxyport' value='{{proxyport}}' maxlength=5></td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Proxy Type</td>
+                                                <td>&nbsp;</td>
+                                                <td><select name='proxytype'>
+						{% if proxytype == 'http' %}
+						<option value='http' selected>HTTP</option>
+						{% else %}
+						<option value='http'>HTTP</option>
+						{% endif %}
+						{% if proxytype == 'https' %}
+						<option value='https' selected>HTTPS</option>
+						{% else %}
+						<option value='https'>HTTPS</option>
+						{% endif %}
+						{% if proxytype == 'socks' %}
+						<option value='socks' selected>SOCKS</option>
+						{% else %}
+						<option value='socks'>SOCKS</option>
+						{% endif %}
+						</select></td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Provider</td>
+                                                <td>&nbsp;</td>
+                                                <td><input type='text' name='proxyprovider' value='{{proxyprovider}}' maxlength=20></td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                                <td>&nbsp;</td>
+                                            </tr>
+                                            <tr>
+                                                <td><input type='hidden' name='operation' value='{{operation}}'><input type='hidden' name='currentproxyurl' value='{{currentproxyurl}}'></td>
+                                                <td><input type='button' name='saveproxy' value='Save Proxy' onclick='javascript:saveproxyinfo();'></td>
+                                                <td>&nbsp;</td>
+                                                <td><input type='button' name='closewindow' value='Close' onclick='window.close();'></td>
+                                            </tr>
                                         </tbody>
                                     </table>
-                                </form></div>
-				
+				    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
-		    {% if showpagination == 1 %}
-			<div class="text-xs-center" id='paginationdiv' style="text-align:center;">
-			    <ul class="pagination">
-				{% if prevpage >= 1 %}
-				<li><a href="?page={{prevpage}}" data-original-title="" title="">Prev</a></li>
-				|||
-				{% endif %}
-				{% if nextpage %}
-				<li><a href="?page={{nextpage}}" data-original-title="" title="">Next</a></li> 
-				{% endif %}
-			    </ul>
-			</div>
-		    {% endif %}
                 </div>
+		<div id='proxystatus'></div>
                 <!-- ============================================================== -->
                 <!-- End PAge Content -->
                 <!-- ============================================================== -->
@@ -357,17 +354,16 @@
     <!-- ============================================================== -->
     <!-- All Jquery -->
     <!-- ============================================================== -->
-    
-    <script src="/static/assets/plugins/jquery/dist/jquery.min.js"></script>
+    <script src="../assets/plugins/jquery/dist/jquery.min.js"></script>
     <!-- Bootstrap tether Core JavaScript -->
-    <script src="/static/assets/plugins/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/app-style-switcher.js"></script>
+    <script src="../assets/plugins/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/app-style-switcher.js"></script>
     <!--Wave Effects -->
-    <script src="/static/js/waves.js"></script>
+    <script src="js/waves.js"></script>
     <!--Menu sidebar -->
-    <script src="/static/js/sidebarmenu.js"></script>
+    <script src="js/sidebarmenu.js"></script>
     <!--Custom JavaScript -->
-    <script src="/static/js/custom.js"></script>
+    <script src="js/custom.js"></script>
 </body>
 
 </html>

@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone as tz
+
 
 class HitManager(models.Model):
     platform = models.CharField(max_length=100, null=False, blank=False, default='')
@@ -44,6 +46,20 @@ class ProxyUsage(models.Model):
     class Meta:
         verbose_name = "Proxies Usage Table"
         db_table = 'hitweb_proxyusage'
+
+
+class APIKeys(models.Model):
+    keyname = models.CharField(max_length=40, null=False, blank=False)
+    keyvalue = models.CharField(max_length=200, null=False, blank=False)
+    keytag = models.CharField(max_length=20, null=False, blank=False)
+    deleted = models.BooleanField(default=False)
+    added = models.DateTimeField(auto_now=True)
+    edited = models.DateTimeField(auto_now_add=True)
+    deletedate = models.DateTimeField(null=True, default=None)
+
+    class Meta:
+        verbose_name = "API Keys Table"
+        db_table = 'hitweb_apikeys'
 
 
 
