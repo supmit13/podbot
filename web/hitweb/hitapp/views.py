@@ -13,7 +13,7 @@ from django.template import loader
 from django.conf import settings
 
 from hitapp.models import HitManager, Proxies, ProxyUsage, APIKeys
-from hitapp.tasks import hitbot_webdriver
+from hitapp.tasks import hitbot_webrun, hitbot_webstop, hitbot_webstatus
 
 from django.http import HttpResponseRedirect
 from django.contrib.auth import authenticate, login
@@ -169,19 +169,79 @@ def runhitbot(request):
         if 'selproxies' in request.POST.keys():
             proxiesbase64 = request.POST['selproxies']
             proxiesstr = base64.b64decode(proxiesbase64)
-            proxies = proxiesstr.split("##")
+            proxies = str(proxiesstr).split("##")
         # pass all params to the hitbot_webdriver call
-        hitbot_webdriver.apply_async(args=[])
+        hitbot_webrun.apply_async(args=[proxies, targeturl, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, amazonapikey, spotifyclientid, spotifyclientsecret])
+        # Add HitManager objects - logic: If buzzsprout url is given, add 3 HitManager objects, one each for amazon, spotify and apple.
+        # If amazononly or spotifyonly or appleonly is true, add one HitManager object for the relevant platform.
+        errmsg = ""
+        if not amazononly and not spotifyonly and not appleonly:
+            hmobjamz = HitManager()
+            hmobjspt = HitManager()
+            hmobjapl = HitManager()
+            hmobjamz.platform = "Amazon"
+            hmobjspt.platform = "Spotify"
+            hmobjapl.platform = "Apple"
+            hmobjamz.targeturl = hmobjspt.targeturl = hmobjapl.targeturl = targeturl
+            hmobjamz.targetcount = amazontargethits
+            hmobjspt.targetcount = spotifytargethits
+            hmobjapl.targetcount = appletargethits
+            nowtime = datetime.now()
+            hmobjamz.starttime = hmobjspt.starttime = hmobjapl.starttime = nowtime
+            hmobjamz.user = hmobjspt.user = hmobjapl.user = request.user
+            hmobjamz.debugstatus = hmobjspt.debugstatus = hmobjapl.debugstatus = True
+            hmobjamz.humanizestatus = hmobjspt.humanizestatus = hmobjapl.humanizestatus = False
+            hmobjamz.loggingstatus = hmobjspt.loggingstatus = hmobjapl.loggingstatus = True
+            hmobjamz.cleanupstatus = hmobjspt.cleanupstatus = hmobjapl.cleanupstatus = False
+            try:
+                hmobjamz.save()
+                hmobjspt.save()
+                hmobjapl.save()
+                errmsg = "Started hit bot successfully and saved run info in DB"
+            except:
+                errmsg = "Error - could not save run information in DB: %s"%sys.exc_info()[1].__str__()
+            return HttpResponse(errmsg)
+        elif amazononly is True:
+            hmobj = HitManager()
+            hmobj.platform = "Amazon"
+            hmobj.targetcount = amazontargethits
+        elif spotifyonly is True:
+            hmobj = HitManager()
+            hmobj.platform = "Spotify"
+            hmobj.targetcount = spotifytargethits
+        elif appleonly is True:
+            hmobj = HitManager()
+            hmobj.platform = "Apple"
+            hmobj.targetcount = appletargethits
+        else:
+            errmsg = "Unhandled Platform"
+        hmobj.targeturl = targeturl
+        nowtime = datetime.now()
+        hmobj.starttime = nowtime
+        hmobj.debugstatus = True
+        hmobj.humanizestatus = False
+        hmobj.loggingstatus = True
+        hmobj.cleanupstatus = False
+        hmobj.user = request.user
+        try:
+            hmobj.save()
+            errmsg = "Started hit bot successfully and saved run info in DB"
+        except:
+            errmsg = "Error - could not save run information in DB: %s"%sys.exc_info()[1].__str__()
+        return HttpResponse(errmsg)
+
 
 
 def stophitbot(request):
     if not request.user.is_authenticated:
         return HttpResponseRedirect("/hitapp/login/?err=3")
+    hitbot_webstop.apply_async()
 
 
 def runstatus(request):
     if not request.user.is_authenticated:
         return HttpResponseRedirect("/hitapp/login/?err=3")
+    hitbot_webstatus.apply_async()
 
 
 def manageproxies(request):
