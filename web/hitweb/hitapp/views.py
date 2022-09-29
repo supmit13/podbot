@@ -4,6 +4,7 @@ import shutil
 import string, random
 import urllib.parse
 import urllib
+import base64
 
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -12,6 +13,7 @@ from django.template import loader
 from django.conf import settings
 
 from hitapp.models import HitManager, Proxies, ProxyUsage, APIKeys
+from hitapp.tasks import hitbot_webdriver
 
 from django.http import HttpResponseRedirect
 from django.contrib.auth import authenticate, login
@@ -97,6 +99,8 @@ def dashboard(request):
 
 
 def runhitbot(request):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect("/hitapp/login/?err=3")
     if request.method == 'GET':
         context = {'color' : "color:#1c30c7;"}
         proxyqset = Proxies.objects.filter(deleted=False)
@@ -117,7 +121,67 @@ def runhitbot(request):
         template = loader.get_template('runbot.html')
         return HttpResponse(template.render(context, request))
     elif request.method == 'POST':
-        pass
+        proxies = []
+        targeturl, amazontargethits, spotifytargethits, appletargethits, amazonapikey, spotifyclientid, spotifyclientsecret = "", -1, -1, -1, "", "", ""
+        amazononly, spotifyonly, appleonly = False, False, False
+        # First thing, get all param values
+        if 'targeturl' in request.POST.keys():
+            targeturl = request.POST['targeturl']
+        if 'amazontargethits' in request.POST.keys():
+            amazontargethits = request.POST['amazontargethits']
+        if 'spotifytargethits' in request.POST.keys():
+            spotifytargethits = request.POST['spotifytargethits']
+        if 'appletargethits' in request.POST.keys():
+            appletargethits = request.POST['appletargethits']
+        if 'AMAZON_APIKEY' in request.POST.keys():
+            amazonapikey = request.POST['AMAZON_APIKEY']
+        if 'SPOTIFY_CLIENTID' in request.POST.keys():
+            spotifyclientid = request.POST['SPOTIFY_CLIENTID']
+        if 'SPOTIFY_CLIENTSECRET' in request.POST.keys():
+            spotifyclientsecret = request.POST['SPOTIFY_CLIENTSECRET']
+        try:
+            amazontargethits = int(amazontargethits)
+        except:
+            msg = "Could not interpret Amazon target hits value as integer"
+            return HttpResponse(msg)
+        try:
+            spotifytargethits = int(spotifytargethits)
+        except:
+            msg = "Could not interpret Spotify target hits value as integer"
+            return HttpResponse(msg)
+        try:
+            appletargethits = int(appletargethits)
+        except:
+            msg = "Could not interpret Apple target hits value as integer"
+            return HttpResponse(msg)
+        if 'amazononly' in request.POST.keys() and int(request.POST['amazononly']) == 1:
+            amazononly = True
+            spotifyonly = False
+            appleonly = False
+        if 'spotifyonly' in request.POST.keys() and int(request.POST['spotifyonly']) == 1:
+            amazononly = False
+            spotifyonly = True
+            appleonly = False
+        if 'appleonly' in request.POST.keys() and int(request.POST['appleonly']) == 1:
+            amazononly = False
+            spotifyonly = False
+            appleonly = True
+        if 'selproxies' in request.POST.keys():
+            proxiesbase64 = request.POST['selproxies']
+            proxiesstr = base64.b64decode(proxiesbase64)
+            proxies = proxiesstr.split("##")
+        # pass all params to the hitbot_webdriver call
+        hitbot_webdriver.apply_async(args=[])
+
+
+def stophitbot(request):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect("/hitapp/login/?err=3")
+
+
+def runstatus(request):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect("/hitapp/login/?err=3")
 
 
 def manageproxies(request):
@@ -156,6 +220,8 @@ def manageproxies(request):
 
 
 def addproxies(request):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect("/hitapp/login/?err=3")
     if request.method == 'GET':
         context = {'operation' : 'Add'}
         template = loader.get_template('addeditproxy.html')
@@ -190,6 +256,8 @@ def deleteproxy(request):
     if request.method != 'POST':
         msg = "Invalid method of call"
         return HttpResponse(msg)
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect("/hitapp/login/?err=3")
     proxyurl = request.POST.get('proxyurl', '')
     proxyqset = Proxies.objects.filter(proxyurl=proxyurl).order_by('-addedon') # Getting the latest.
     if proxyqset.__len__() == 0:
@@ -211,6 +279,8 @@ def editproxies(request):
     if request.method != 'POST':
         msg = "Invalid method of call"
         return HttpResponse(msg)
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect("/hitapp/login/?err=3")
     proxyurl = request.POST.get('proxyurl', '')
     proxyqset = Proxies.objects.filter(proxyurl=proxyurl, deleted=False).order_by('-addedon') # Getting the latest.
     if proxyqset.__len__() == 0:
@@ -230,6 +300,8 @@ def saveproxy(request):
     if request.method != 'POST':
         msg = "Invalid method of call"
         return HttpResponse(msg)
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect("/hitapp/login/?err=3")
     proxyip = request.POST.get('proxyip', '')
     proxyport = request.POST.get('proxyport', '')
     proxytype = request.POST.get('proxytype', '')
@@ -260,6 +332,8 @@ def saveproxy(request):
 
 
 def managekeys(request):
+    if not request.user.is_authenticated:
+        return HttpResponseRedirect("/hitapp/login/?err=3")
     if request.method == 'GET':
         allkeys = APIKeys.objects.filter(deleted=False)
         if allkeys is None or allkeys.__len__() == 0:
@@ -269,14 +343,29 @@ def managekeys(request):
             return HttpResponse(template.render(context, request))
         keysdict = {}
         for apikey in allkeys:
-            keyname = apikey.keyname
+            keytag = apikey.keytag
             keyvalue = apikey.keyvalue
-            keysdict[keyname] = keyvalue
+            keysdict[keytag] = keyvalue
         context = {'apikeys' : keysdict}
         template = loader.get_template('managekeys.html')
         return HttpResponse(template.render(context, request))
     elif request.method == 'POST':
-        pass
+        keysdict = {}
+        errmsglist = []
+        for i in range(1, 4):
+            tagname = request.POST.get('keytag_%s'%i)
+            keyvalue = request.POST.get('keyval_%s'%i)
+            try:
+                keyobj = APIKeys.objects.get(keytag=tagname, deleted=False)
+                keyobj.keyvalue = keyvalue
+                keyobj.save()
+            except:
+                msg = "Error trying to find key identified by tag: %s"%tagname
+                errmsglist.append(msg)
+        msg = "Completed operation with %s errors<br />"%(errmsglist.__len__())
+        for err in errmsglist:
+            msg += err + "<br />"
+        return HttpResponse(msg)
 
 
 

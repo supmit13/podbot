@@ -8,9 +8,12 @@ import gzip
 import io
 
 import subprocess
-import from threading import Thread
+from threading import Thread
+
+from celery import shared_task
 
 
+@shared_task
 def hitbot_webdriver():
     pass
 

@@ -25,45 +25,36 @@
 <![endif]-->
 
     <script type='text/javascript'>
-    function savekeys(){
+    function savekeysinfo(){
 	let formData = new FormData();
-        csrf = document.frmproxy.csrfmiddlewaretoken.value;
-        proxyip = document.frmproxy.proxyip.value;
-        proxyport = document.frmproxy.proxyport.value;
-        proxytype = document.frmproxy.proxytype.options[document.frmproxy.proxytype.options.selectedIndex].value;
-        proxyprovider = document.frmproxy.proxyprovider.value;
-	operation = document.frmproxy.operation.value;
-	formData.append("proxyip", proxyip);
-	formData.append("proxyport", proxyport);
-	formData.append("proxytype", proxytype);
-	formData.append("proxyprovider", proxyprovider);
-	formData.append("operation", operation);
+        csrf = document.frmkeys.csrfmiddlewaretoken.value;
+        for(var i=1;i < 4; i++){
+	    elname = "keytag_" + i;
+	    keytagvalue = document.getElementById(elname).value
+	    valname = "keyval_" + i;
+            keyvalname = document.getElementById(valname).value;
+	    formData.append(elname, keytagvalue);
+	    formData.append(valname, keyvalname);
+        }
 	formData.append("csrfmiddlewaretoken", csrf);
 	var xmlhttp;
-	  if (window.XMLHttpRequest){
+	if (window.XMLHttpRequest){
 	    xmlhttp=new XMLHttpRequest();
-	  }
-	  else{
+	}
+	else{
 	    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
-	  }
-	  // Register the handler
-	  xmlhttp.onreadystatechange = function(){
-	  if(xmlhttp.readyState == 4 && xmlhttp.status==200){
-	    //alert(xmlhttp.responseText);
-	    statusdiv = document.getElementById('proxystatus');
-	    statusdiv.innerHTML = "<p style='color:0000AA'>" + xmlhttp.responseText + "</p>";
-	  }
-	  };
-	  if(operation == "Add"){
-	      xmlhttp.open("POST", '/hitapp/addproxies/', true);
-	  }
-	  else if(operation == "Edit"){
-	      currentproxyurl = document.frmproxy.currentproxyurl.value;
-	      formData.append("currentproxyurl", currentproxyurl);
-	      xmlhttp.open("POST", '/hitapp/saveproxies/', true);
-	  }
-	  xmlhttp.setRequestHeader("X-CSRFToken", csrf);
-	  xmlhttp.send(formData);
+	}
+	// Register the handler
+	xmlhttp.onreadystatechange = function(){
+	if(xmlhttp.readyState == 4 && xmlhttp.status==200){
+	  //alert(xmlhttp.responseText);
+	  statusdiv = document.getElementById('keystatus');
+	  statusdiv.innerHTML = "<p style='color:0000AA'>" + xmlhttp.responseText + "</p>";
+	}
+	};
+	xmlhttp.open("POST", '/hitapp/managekeys/', true);
+	xmlhttp.setRequestHeader("X-CSRFToken", csrf);
+	xmlhttp.send(formData);
     }
     </script>
 </head>
@@ -152,7 +143,7 @@
                         <!-- ============================================================== -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle text-muted waves-effect waves-dark" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <img src="/static/assets/images/users/1.jpg" alt="user" class="profile-pic me-2">Markarn Doe
+                                <img src="/static/assets/images/users/1.jpg" alt="user" class="profile-pic me-2">
                             </a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown"></ul>
                         </li>
@@ -268,11 +259,11 @@
 				    {% csrf_token %}
                                     <table class="table user-table">
                                         <tbody>
-					    {% for keyname, keyvalue in apikeys.items %}
+					    {% for keytag, keyvalue in apikeys.items %}
                                             <tr>
-                                                <td>{{keyname}}<input type='hidden' name='keyname_{{forloop.counter}}' value='{{keyname}}'></td>
+                                                <td>{{keytag}}<input type='hidden' name='keytag_{{forloop.counter}}' id='keytag_{{forloop.counter}}' value='{{keytag}}'></td>
                                                 <td>&nbsp;</td>
-                                                <td><input type='text' name='keyval_{{forloop.counter}}' value='{{keyvalue}}' maxlength='40' size='20'></td>
+                                                <td><input type='text' name='keyval_{{forloop.counter}}' id='keyval_{{forloop.counter}}' value='{{keyvalue}}' maxlength='40' size='20'></td>
                                                 <td>&nbsp;</td>
                                             </tr>
                                             {% endfor %}
@@ -283,9 +274,9 @@
                                                 <td>&nbsp;</td>
                                             </tr>
                                             <tr>
-                                                <td><input type='button' name='savekeys' value='Save Keys' onclick='javascript:savekeys();'></td>
+                                                <td colspan=2><input type='button' name='savekeys' value='Save Keys' onclick='javascript:savekeysinfo();'></td>
                                                 <td>&nbsp;</td>
-                                                <td><input type='button' name='closewindow' value='Close' onclick='window.close();'></td>
+						<td>&nbsp;</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -295,7 +286,7 @@
                         </div>
                     </div>
                 </div>
-		<div id='proxystatus'></div>
+		<div id='keystatus'></div>
                 <!-- ============================================================== -->
                 <!-- End PAge Content -->
                 <!-- ============================================================== -->

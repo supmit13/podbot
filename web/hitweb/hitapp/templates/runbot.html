@@ -24,10 +24,57 @@
 <![endif]-->
 <script type='text/javascript'>
 
+    var intid;
+
     function startbot(){
 	let formData = new FormData();
-        csrf = document.frmmanageproxies.csrfmiddlewaretoken.value;
-        formData.append("proxyurl", proxyurl);
+        csrf = document.frmrunbot.csrfmiddlewaretoken.value;
+        targeturlval = document.frmrunbot.targeturl.value;
+        amazontargethitsval = document.frmrunbot.amazontargethits.value;
+        spotifytargethitsval = document.frmrunbot.spotifytargethits.value;
+        appletargethitsval = document.frmrunbot.appletargethits.value;
+        allelements = document.frmrunbot.elements;
+        amazonapikey = "";
+        spotifyclientid = "";
+        spotifyclientsecret = "";
+        for(var i=0; i < allelements.length; i++){
+            elem = allelements[i];
+            if(elem.name=='AMAZON_APIKEY'){
+		amazonapikey = elem.value;
+	    }
+	    if(elem.name=='SPOTIFY_CLIENTID'){
+		spotifyclientid = elem.value;
+	    }
+	    if(elem.name=='SPOTIFY_CLIENTSECRET'){
+		spotifyclientsecret = elem.value;
+	    }
+        }
+        if(amazonapikey == "" || spotifyclientid == "" || spotifyclientsecret == ""){
+	    alert("One of the API keys/Ids is empty. Cannot proceed without it.");
+	    return(false);
+	}
+	amazononlyval = 0;
+	spotifyonlyval = 0;
+	appleonlyval = 0;
+        if(document.frmrunbot.amazononly.checked == true){
+	    amazononlyval = 1;
+	}
+	else if(document.frmrunbot.spotifyonly.checked == true){
+	    spotifyonlyval = 1;
+	}
+	else if(document.frmrunbot.appleonly.checked == true){
+	    appleonlyval = 1;
+	}
+        formData.append("targeturl", targeturlval);
+	formData.append("AMAZON_APIKEY", amazonapikey);
+	formData.append("SPOTIFY_CLIENTID", spotifyclientid);
+	formData.append("SPOTIFY_CLIENTSECRET", spotifyclientsecret);
+	formData.append("amazontargethits", amazontargethitsval);
+	formData.append("spotifytargethits", spotifytargethitsval);
+	formData.append("appletargethits", appletargethitsval);
+	formData.append("amazononly", amazononlyval);
+	formData.append("spotifyonly", spotifyonlyval);
+	formData.append("appleonly", appleonlyval);
         formData.append("csrfmiddlewaretoken", csrf);
 	var xmlhttp;
 	  if (window.XMLHttpRequest){
@@ -40,11 +87,12 @@
 	  xmlhttp.onreadystatechange = function(){
 	  if(xmlhttp.readyState == 4 && xmlhttp.status==200){
 	    //alert(xmlhttp.responseText);
-	    newwin = window.open("", "", "toolbar=yes,scrollbars=yes,resizable=yes,width=700,height=500");
-    	    newwin.document.write(xmlhttp.responseText);
+	    runstatus = document.getElementById('runstatus');
+	    runstatus.innerHTML = xmlhttp.responseText;
+	    intid = window.setInterval(getstatus, 10000); // This will refresh the status div every 10 seconds.
 	  }
 	  };
-	  xmlhttp.open("POST", '/hitapp/editproxies/', true);
+	  xmlhttp.open("POST", '/hitapp/runbot/', true);
 	  xmlhttp.setRequestHeader("X-CSRFToken", csrf);
 	  xmlhttp.send(formData);
     }
@@ -52,7 +100,6 @@
     function stopbot(){
 	let formData = new FormData();
         csrf = document.frmmanageproxies.csrfmiddlewaretoken.value;
-        formData.append("proxyurl", proxyurl);
         formData.append("csrfmiddlewaretoken", csrf);
 	var xmlhttp;
 	  if (window.XMLHttpRequest){
@@ -65,13 +112,18 @@
 	  xmlhttp.onreadystatechange = function(){
 	  if(xmlhttp.readyState == 4 && xmlhttp.status==200){
 	    //alert(xmlhttp.responseText);
-	    newwin = window.open("", "", "toolbar=yes,scrollbars=yes,resizable=yes,width=700,height=500");
-    	    newwin.document.write(xmlhttp.responseText);
+	    runstatus = document.getElementById('runstatus');
+	    runstatus.innerHTML = xmlhttp.responseText;
+	    window.clearInterval(intid);
 	  }
 	  };
-	  xmlhttp.open("POST", '/hitapp/deleteproxies/', true);
+	  xmlhttp.open("POST", '/hitapp/stopbot/', true);
 	  xmlhttp.setRequestHeader("X-CSRFToken", csrf);
 	  xmlhttp.send(formData);
+    }
+
+    function getstatus(){
+	
     }
 
 </script>
@@ -337,6 +389,7 @@
                                             </tr>
                                         </tbody>
                                     </table>
+				    <div id='runstatus'></div>
                                 </form></div>
 				
                             </div>
