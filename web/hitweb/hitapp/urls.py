@@ -33,6 +33,7 @@ urlpatterns = [
     path('deleteproxies/', views.deleteproxy, name='deleteproxy'),
     path('saveproxies/', views.saveproxy, name='saveproxy'),
     path('managekeys/', views.managekeys, name='managekeys'),
+    path('adduser/', views.adduser, name='adduser'),
 ]
 
 

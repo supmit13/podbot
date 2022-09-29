@@ -22,6 +22,40 @@ from django.contrib.auth.models import User
 from django.contrib.auth import logout
 
 
+def adduser(request):
+    if not request.user.is_authenticated: # You need to be logged in to create a new user.
+        return HttpResponseRedirect("/hitapp/login/?err=3")
+    if request.method == 'GET':
+        context = {}
+        template = loader.get_template('adduser.html')
+        return HttpResponse(template.render(context, request))
+    elif request.method == 'POST':
+        firstname, lastname, username, emailid, password = "", "", "", "", ""
+        firstname = request.POST.get('firstname', '')
+        lastname = request.POST.get('lastname', '')
+        username = request.POST.get('username', '')
+        emailid = request.POST.get('email', '')
+        password = request.POST.get('psw', '')
+        newuser = User()
+        newuser.first_name = firstname
+        newuser.last_name = lastname
+        newuser.username = username
+        newuser.email = emailid
+        newuser.password = password
+        newuser.is_active = True
+        newuser.date_joined = datetime.now()
+        newuser.is_staff = False
+        newuser.is_superuser = False
+        try:
+            newuser.save()
+            msg = "Successfully added user"
+        except:
+            msg = "Failed to add user: %s"%sys.exc_info()[1].__str__()
+        return HttpResponse(msg)
+    else:
+        msg = "Invalid method of call"
+        return HttpResponse(msg)
+
 
 def showlogin(request):
     if request.method != 'GET':
