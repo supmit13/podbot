@@ -40,7 +40,7 @@ class Proxies(models.Model):
 
 
 class ProxyUsage(models.Model):
-    proxy = models.ForeignKey(Proxies, on_delete=models.PROTECT)
+    proxy = models.TextField()
     hit = models.ForeignKey(HitManager, on_delete=models.PROTECT)
 
     class Meta:

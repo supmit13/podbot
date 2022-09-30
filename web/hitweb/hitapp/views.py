@@ -204,8 +204,6 @@ def runhitbot(request):
             proxiesbase64 = request.POST['selproxies']
             proxiesstr = base64.b64decode(proxiesbase64)
             proxies = str(proxiesstr).split("##")
-        # pass all params to the hitbot_webdriver call
-        hitbot_webrun.apply_async(args=[proxies, targeturl, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, amazonapikey, spotifyclientid, spotifyclientsecret])
         # Add HitManager objects - logic: If buzzsprout url is given, add 3 HitManager objects, one each for amazon, spotify and apple.
         # If amazononly or spotifyonly or appleonly is true, add one HitManager object for the relevant platform.
         errmsg = ""
@@ -231,9 +229,28 @@ def runhitbot(request):
                 hmobjamz.save()
                 hmobjspt.save()
                 hmobjapl.save()
+                amzlastid, sptlastid, apllastid = -1, -1, -1
+                amzlastid = hmobjamz.id
+                sptlastid = hmobjspt.id
+                apllastid = hmobjapl.id
+                amzprxusage = ProxyUsage()
+                sptprxusage = ProxyUsage()
+                aplprxusage = ProxyUsage()
+                amzprxusage.hit = hmobjamz
+                sptprxusage.hit = hmobjspt
+                aplprxusage.hit = hmobjapl
+                amzprxusage.proxy = ",".join(proxies)
+                sptprxusage.proxy = ",".join(proxies)
+                aplprxusage.proxy = ",".join(proxies)
+                amzprxusage.save()
+                sptprxusage.save()
+                aplprxusage.save()
+                idlist = [amzlastid, sptlastid, apllastid]
+                # pass all params to the hitbot_webdriver call
+                hitbot_webrun.apply_async(args=[proxies, targeturl, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, amazonapikey, spotifyclientid, spotifyclientsecret, idlist])
                 errmsg = "Started hit bot successfully and saved run info in DB"
             except:
-                errmsg = "Error - could not save run information in DB: %s"%sys.exc_info()[1].__str__()
+                errmsg = "Error - could not run bot: %s"%sys.exc_info()[1].__str__()
             return HttpResponse(errmsg)
         elif amazononly is True:
             hmobj = HitManager()
@@ -259,6 +276,20 @@ def runhitbot(request):
         hmobj.user = request.user
         try:
             hmobj.save()
+            amzlastid, sptlastid, apllastid = -1, -1, -1
+            if hmobj.platform == "Amazon":
+                amzlastid = hmobj.id
+            if hmobj.platform == "Spotify":
+                sptlastid = hmobj.id
+            if hmobj.platform == "Apple":
+                apllastid = hmobj.id
+            prxusage = ProxyUsage()
+            prxusage.hit = hmobj
+            prxusage.proxy = ",".join(proxies)
+            prxusage.save()
+            idlist = [amzlastid, sptlastid, apllastid]
+            # pass all params to the hitbot_webdriver call
+            hitbot_webrun.apply_async(args=[proxies, targeturl, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, amazonapikey, spotifyclientid, spotifyclientsecret, idlist])
             errmsg = "Started hit bot successfully and saved run info in DB"
         except:
             errmsg = "Error - could not save run information in DB: %s"%sys.exc_info()[1].__str__()

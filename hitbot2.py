@@ -23,6 +23,7 @@ import io
 import hashlib, base64
 import weakref
 import uuid
+import pymysql as MySQLdb
 
 # Amazon APIs
 import boto3
@@ -1443,7 +1444,7 @@ class BuzzBot(object):
         return self.results
 
 
-    def hitpodcast(self, siteurl, sitename, targetcount=-1):
+    def hitpodcast(self, siteurl, sitename, targetcount=-1, dbid=-1):
         global AMAZON_HIT_STAT
         global SPOTIFY_HIT_STAT
         global APPLE_HIT_STAT
@@ -1501,6 +1502,13 @@ class BuzzBot(object):
                     curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
                     self.msglabeltext.set(curmessagecontent)
                 ctr += 1
+            if dbid > -1: # This could be a valid id if the request came from the web interface
+                dbconn = MySQLdb.connect(host='localhost', user='hituser', password='hitpasswd', db='hitdb')
+                cursorobj = dbconn.cursor()
+                sql = "update hitweb_manager set actualcount=%s, endtime=NOW() where id=%s"%(APPLE_HIT_STAT, dbid)
+                cursorobj.execute()
+                dbconn.commit()
+                dbconn.close()
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = False
             if applebot is not None:
@@ -1609,6 +1617,13 @@ class BuzzBot(object):
                         curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
                         self.msglabeltext.set(curmessagecontent)
                 ctr += 1
+            if dbid > -1: # This could be a valid id if the request came from the web interface
+                dbconn = MySQLdb.connect(host='localhost', user='hituser', password='hitpasswd', db='hitdb')
+                cursorobj = dbconn.cursor()
+                sql = "update hitweb_manager set actualcount=%s, endtime=NOW() where id=%s"%(SPOTIFY_HIT_STAT, dbid)
+                cursorobj.execute()
+                dbconn.commit()
+                dbconn.close()
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = False
             if spotbot is not None:
@@ -1863,6 +1878,13 @@ class BuzzBot(object):
                         pass
                     ipctr += 1
                 ctr += 1
+            if dbid > -1: # This could be a valid id if the request came from the web interface
+                dbconn = MySQLdb.connect(host='localhost', user='hituser', password='hitpasswd', db='hitdb')
+                cursorobj = dbconn.cursor()
+                sql = "update hitweb_manager set actualcount=%s, endtime=NOW() where id=%s"%(AMAZON_HIT_STAT, dbid)
+                cursorobj.execute()
+                dbconn.commit()
+                dbconn.close()
             # Check to see if self.podcasttitle exists in the retrieved content
             boolret = False
             if ambot is not None:

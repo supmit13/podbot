@@ -3,7 +3,7 @@ import datetime
 import shutil
 
 import simplejson as json
-import MySQLdb
+import pymysql as MySQLdb
 import gzip
 import io
 
@@ -43,7 +43,7 @@ class WebUI(object):
         self.errmsg = ""
         
 
-    def startbot(self, targeturl, amazonapikey, spotifyclientid, spotifyclientsecret, proxieslist, targetamazonhits, targetspotifyhits, targetapplehits, amazononly, spotifyonly, appleonly, debug=False, humanize=False, logging=True, cleanup=True):
+    def startbot(self, targeturl, amazonapikey, spotifyclientid, spotifyclientsecret, proxieslist, targetamazonhits, targetspotifyhits, targetapplehits, amazononly, spotifyonly, appleonly, idlist, debug=False, humanize=False, logging=True, cleanup=True):
         self.targeturl = targeturl
         if self.targeturl == "":
             self.errmsg = "Target URL cannot be empty"
@@ -91,7 +91,7 @@ class WebUI(object):
         if self.DEBUG:
             print("%s ___ %s ____ %s"%(self.DEBUG, self.humanize, self.logging))
         # Start bot in a background thread...
-        self.rt = Thread(target=self.runbot, args=(self.targeturl, self.targetamazonhits, self.targetspotifyhits, self.targetapplehits))
+        self.rt = Thread(target=self.runbot, args=(self.targeturl, idlist, self.targetamazonhits, self.targetspotifyhits, self.targetapplehits))
         self.rt.daemon = True
         self.rt.start()
         
@@ -104,7 +104,7 @@ class WebUI(object):
     A target count of -1 means the bot should run indefinitely hitting all targets until it is stopped
     (possibly by killing the process).
     """
-    def runbot(self, targeturl, amazonsettarget=-1, spotifysettarget=-1, applesettarget=-1):
+    def runbot(self, targeturl, idlist, amazonsettarget=-1, spotifysettarget=-1, applesettarget=-1):
         self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret, self, self.proxieslist)
         self.buzz.DEBUG = self.DEBUG
         self.buzz.humanize = self.humanize
@@ -129,22 +129,26 @@ class WebUI(object):
         for sitename in urlsdict.keys():
             siteurl = urlsdict[sitename]
             targetcount = -1
+            dbid = -1
             if sitename.lower() == "apple":
                 targetcount = self.buzz.applesettarget
                 if self.amazononly == True or self.spotifyonly == True:
                     targetcount = 0
+                dbid = idlist[2]
             if sitename.lower() == "amazon":
                 targetcount = self.buzz.amazonsettarget
                 if self.appleonly == True or self.spotifyonly == True:
                     targetcount = 0
+                dbid = idlist[0]
             if sitename.lower() == "spotify":
                 targetcount = self.buzz.spotifysettarget
                 if self.appleonly == True or self.amazononly == True:
                     targetcount = 0
+                dbid = idlist[1]
             # If targetcount is 0, then there is no reason to start a thread
             if targetcount == 0:
                 continue
-            t = Thread(target=self.buzz.hitpodcast, args=(siteurl, sitename, targetcount))
+            t = Thread(target=self.buzz.hitpodcast, args=(siteurl, sitename, targetcount, dbid))
             t.daemon = True
             t.start()
             self.threadslist.append(t)
@@ -199,9 +203,9 @@ class WebUI(object):
 
 
 @shared_task
-def hitbot_webrun(proxies, targeturl, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, amazonapikey, spotifyclientid, spotifyclientsecret):
+def hitbot_webrun(proxies, targeturl, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, amazonapikey, spotifyclientid, spotifyclientsecret, idlist):
     botui = WebUI()
-    botui.startbot(targeturl, amazonapikey, spotifyclientid, spotifyclientsecret, proxies, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, True, False, True, False)
+    botui.startbot(targeturl, amazonapikey, spotifyclientid, spotifyclientsecret, proxies, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, idlist, True, False, True, False)
 
 
 @shared_task
