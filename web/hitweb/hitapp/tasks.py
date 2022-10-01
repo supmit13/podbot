@@ -43,7 +43,7 @@ class WebUI(object):
         self.errmsg = ""
         
 
-    def startbot(self, targeturl, amazonapikey, spotifyclientid, spotifyclientsecret, proxieslist, targetamazonhits, targetspotifyhits, targetapplehits, amazononly, spotifyonly, appleonly, idlist, debug=False, humanize=False, logging=True, cleanup=True):
+    def startbot(self, targeturl, amazonapikey, spotifyclientid, spotifyclientsecret, proxieslist, targetamazonhits, targetspotifyhits, targetapplehits, amazononly, spotifyonly, appleonly, idlist, debug=False, humanize=False, logging=True, cleanup=True, statusfile=None):
         self.targeturl = targeturl
         if self.targeturl == "":
             self.errmsg = "Target URL cannot be empty"
@@ -91,7 +91,7 @@ class WebUI(object):
         if self.DEBUG:
             print("%s ___ %s ____ %s"%(self.DEBUG, self.humanize, self.logging))
         # Start bot in a background thread...
-        self.rt = Thread(target=self.runbot, args=(self.targeturl, idlist, self.targetamazonhits, self.targetspotifyhits, self.targetapplehits))
+        self.rt = Thread(target=self.runbot, args=(self.targeturl, idlist, self.targetamazonhits, self.targetspotifyhits, self.targetapplehits, statusfile))
         self.rt.daemon = True
         self.rt.start()
         
@@ -104,7 +104,7 @@ class WebUI(object):
     A target count of -1 means the bot should run indefinitely hitting all targets until it is stopped
     (possibly by killing the process).
     """
-    def runbot(self, targeturl, idlist, amazonsettarget=-1, spotifysettarget=-1, applesettarget=-1):
+    def runbot(self, targeturl, idlist, amazonsettarget=-1, spotifysettarget=-1, applesettarget=-1, statusfile=None):
         self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret, self, self.proxieslist)
         self.buzz.DEBUG = self.DEBUG
         self.buzz.humanize = self.humanize
@@ -148,7 +148,7 @@ class WebUI(object):
             # If targetcount is 0, then there is no reason to start a thread
             if targetcount == 0:
                 continue
-            t = Thread(target=self.buzz.hitpodcast, args=(siteurl, sitename, targetcount, dbid))
+            t = Thread(target=self.buzz.hitpodcast, args=(siteurl, sitename, targetcount, dbid, statusfile, False))
             t.daemon = True
             t.start()
             self.threadslist.append(t)
@@ -160,13 +160,13 @@ class WebUI(object):
         curmessagecontent += "\n\nFinished hitting targets."
         self.errmsg = curmessagecontent
         # Write this message in history
-        historyfile = os.getcwd() + os.path.sep + "hitbot2_" + time.strftime("%Y%m%d%H%M%S",time.localtime()) + ".history"
-        if not os.path.exists(historyfile):
-            fh = open(historyfile, "w")
-        else:
-            fh = open(historyfile, "a")
-        fh.write(curmessagecontent + "\n=================================\n\n")
-        fh.close()
+        #historyfile = os.getcwd() + os.path.sep + "hitbot2_" + time.strftime("%Y%m%d%H%M%S",time.localtime()) + ".history"
+        #if not os.path.exists(historyfile):
+        #    fh = open(historyfile, "w")
+        #else:
+        #    fh = open(historyfile, "a")
+        #fh.write(curmessagecontent + "\n=================================\n\n")
+        #fh.close()
         return True
 
 
@@ -203,9 +203,9 @@ class WebUI(object):
 
 
 @shared_task
-def hitbot_webrun(proxies, targeturl, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, amazonapikey, spotifyclientid, spotifyclientsecret, idlist):
+def hitbot_webrun(proxies, targeturl, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, amazonapikey, spotifyclientid, spotifyclientsecret, idlist, statusfile):
     botui = WebUI()
-    botui.startbot(targeturl, amazonapikey, spotifyclientid, spotifyclientsecret, proxies, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, idlist, True, False, True, False)
+    botui.startbot(targeturl, amazonapikey, spotifyclientid, spotifyclientsecret, proxies, amazontargethits, spotifytargethits, appletargethits, amazononly, spotifyonly, appleonly, idlist, True, False, True, False, statusfile)
 
 
 @shared_task

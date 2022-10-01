@@ -1444,7 +1444,7 @@ class BuzzBot(object):
         return self.results
 
 
-    def hitpodcast(self, siteurl, sitename, targetcount=-1, dbid=-1):
+    def hitpodcast(self, siteurl, sitename, targetcount=-1, dbid=-1, statusfile=None, desktop=True):
         global AMAZON_HIT_STAT
         global SPOTIFY_HIT_STAT
         global APPLE_HIT_STAT
@@ -1457,11 +1457,20 @@ class BuzzBot(object):
             targetcount = 10000 # We set this to 10000, a suitably large number of hits
         if self.logging:
             self.logger.write("Starting podcast hits for '%s': Target count = %s\n"%(sitename, targetcount))
+        fsf = None
+        if statusfile is not None:
+            if not os.path.exists(statusfile):
+                fsf = open(statusfile, "w")
+            else:
+                fsf = open(statusfile, "a")
+            fsf.write("Starting podcast hits for '%s': Target count = %s\n"%(sitename, targetcount))
         if sitename.lower() == "apple":
             if self.DEBUG:
                 print(siteurl)
             if self.logging:
                 self.logger.write("Apple URL: %s\n"%siteurl)
+            if fsf is not None:
+                fsf.write("Apple URL: %s\n"%siteurl)
             statuspattern = re.compile("APPLE\:\s+\d+", re.DOTALL)
             applebot = None
             pageidpattern = re.compile("id(\d+)$")
@@ -1482,6 +1491,8 @@ class BuzzBot(object):
                     print("APPLE ITERATION #%s ======================="%ctr)
                 if self.logging:
                     self.logger.write("APPLE ITERATION #%s =======================\n"%ctr)
+                if fsf is not None:
+                    fsf.write("APPLE ITERATION #%s =======================\n"%ctr)
                 for pclink in podcastlinks:
                     if self.quitflag == True:
                         print("Quit signal received. Terminating apple child.")
@@ -1492,15 +1503,20 @@ class BuzzBot(object):
                             print("Sent request to web_exp")
                     if self.logging:
                         self.logger.write("Getting Apple podcast mp3 from %s\n"%pclink)
+                    if fsf is not None:
+                        fsf.write("APPLE ITERATION #%s =======================\n"%ctr)
                     if self.humanize:
                         ht = getrandominterval(5)
                         time.sleep(ht)
                     resp = applebot.downloadpodcast(pclink, self.dumpdir)
                     APPLE_HIT_STAT += 1
-                    curmessagecontent = self.msglabeltext.get()
-                    replacementmessage = "APPLE: %s"%APPLE_HIT_STAT
-                    curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
-                    self.msglabeltext.set(curmessagecontent)
+                    if desktop:
+                        curmessagecontent = self.msglabeltext.get()
+                        replacementmessage = "APPLE: %s"%APPLE_HIT_STAT
+                        curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
+                        self.msglabeltext.set(curmessagecontent)
+                    if fsf is not None:
+                        fsf.write("APPLE: %s"%APPLE_HIT_STAT)
                 ctr += 1
             if dbid > -1: # This could be a valid id if the request came from the web interface
                 dbconn = MySQLdb.connect(host='localhost', user='hituser', password='hitpasswd', db='hitdb')
@@ -1527,6 +1543,8 @@ class BuzzBot(object):
                     print("Spotify: %s"%siteurl)
                 if self.logging:
                     self.logger.write("Spotify URL: %s\n"%siteurl)
+                if fsf is not None:
+                    fsf.write("Spotify URL: %s\n"%siteurl)
                 playlistpattern = re.compile("https\:\/\/open\.spotify\.com\/playlist\/([a-zA-Z\d]+)$", re.IGNORECASE)
                 spps = re.search(playlistpattern, siteurl)
                 if spps:
@@ -1555,6 +1573,8 @@ class BuzzBot(object):
                 episodeids = ",".join(episodeidlist)
                 if self.logging:
                     self.logger.write("Spotify episode Ids: %s\n"%episodeids)
+                if fsf is not None:
+                    fsf.write("Spotify episode Ids: %s\n"%episodeids)
                 #print(episodeurls)
                 clientid, accesstoken = "", ""
                 clientidpattern = re.compile("\"clientId\"\:\"([^\"]+)\"", re.DOTALL)
@@ -1576,6 +1596,8 @@ class BuzzBot(object):
                     print("SPOTIFY ITERATION #%s ======================="%ctr)
                 if self.logging:
                     self.logger.write("SPOTIFY ITERATION #%s =======================\n"%ctr)
+                if fsf is not None:
+                    fsf.write("SPOTIFY ITERATION #%s =======================\n"%ctr)
                 spotmp3list = []
                 for eid in episodeidlist:
                     spotbot.ispodcast = False
@@ -1584,12 +1606,16 @@ class BuzzBot(object):
                         print("Spotify mp3 URL: %s"%epmp3url)
                     if self.logging:
                         self.logger.write("Spotify mp3 URL: %s\n"%epmp3url)
+                    if fsf is not None:
+                        fsf.write("Spotify mp3 URL: %s\n"%epmp3url)
                     if itemtype == "track" and spotbot.ispodcast == False: # If we have a track, then we are already hitting the target through "getepisodemp3url"
                         SPOTIFY_HIT_STAT += 1
                         curmessagecontent = self.msglabeltext.get()
                         replacementmessage = "SPOTIFY: %s"%SPOTIFY_HIT_STAT
                         curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
                         self.msglabeltext.set(curmessagecontent)
+                        if fsf is not None:
+                            fsf.write("SPOTIFY: %s"%SPOTIFY_HIT_STAT)
                     spotmp3list.append(epmp3url)
                 for epurl in spotmp3list:
                     if self.quitflag == True:
@@ -1612,10 +1638,13 @@ class BuzzBot(object):
                             fs.close()
                     if spotbot.ispodcast == True:
                         SPOTIFY_HIT_STAT += 1
-                        curmessagecontent = self.msglabeltext.get()
-                        replacementmessage = "SPOTIFY: %s"%SPOTIFY_HIT_STAT
-                        curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
-                        self.msglabeltext.set(curmessagecontent)
+                        if desktop:
+                            curmessagecontent = self.msglabeltext.get()
+                            replacementmessage = "SPOTIFY: %s"%SPOTIFY_HIT_STAT
+                            curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
+                            self.msglabeltext.set(curmessagecontent)
+                        if fsf is not None:
+                            fsf.write("SPOTIFY: %s"%SPOTIFY_HIT_STAT)
                 ctr += 1
             if dbid > -1: # This could be a valid id if the request came from the web interface
                 dbconn = MySQLdb.connect(host='localhost', user='hituser', password='hitpasswd', db='hitdb')
@@ -1638,6 +1667,8 @@ class BuzzBot(object):
                 print("Amazon: %s"%siteurl)
             if self.logging:
                 self.logger.write("Amazon URL: %s\n"%siteurl)
+            if fsf is not None:
+                fsf.write("Amazon URL: %s\n"%siteurl)
             podcastmainurlparts = siteurl.split("/")
             podcastdomain = podcastmainurlparts[2]
             statuspattern = re.compile("AMAZON\:\s+\d+", re.DOTALL)
@@ -1731,6 +1762,8 @@ class BuzzBot(object):
                 for eurl in episodeurls:
                     if self.logging:
                         self.logger.write("Fetching Amazon episode URL: %s\n"%eurl)
+                    if fsf is not None:
+                        fsf.write("Fetching Amazon episode URL: %s\n"%eurl)
                     response = ambot.makehttprequest(eurl)
                     #print(response.headers)
                     if 'set-cookie' in response.headers.keys():
@@ -1809,6 +1842,8 @@ class BuzzBot(object):
                         print("Error in extracting Amazon media links: %s"%sys.exc_info()[1].__str__())
                         if self.logging:
                             self.logger.write("Error in extracting Amazon media links: %s\n"%sys.exc_info()[1].__str__())
+                        if fsf is not None:
+                            fsf.write("Error in extracting Amazon media links: %s\n"%sys.exc_info()[1].__str__())
                     # Need to hit "visual" url again, just to make the download count. This is insane.
                     ambot.playbackstartedvisual(params, mediaurl, episodeids[ectr])
                     ambot.clearmusicqueuerequest(csrftoken, csrfts, devid, eurl, csrfrnd, sessid, podcastdomain)
@@ -1819,6 +1854,8 @@ class BuzzBot(object):
                     print("AMAZON ITERATION #%s ======================="%ctr)
                 if self.logging:
                     self.logger.write("AMAZON ITERATION #%s =======================\n"%ctr)
+                if fsf is not None:
+                    fsf.write("AMAZON ITERATION #%s =======================\n"%ctr)
                 ipctr = 0
                 for mediaurl in mediaurlslist:
                     if self.quitflag == True:
@@ -1856,13 +1893,19 @@ class BuzzBot(object):
                         print("Getting mp3 from Amazon: %s"%mediaurl)
                     if self.logging:
                         self.logger.write("Getting mp3 from Amazon: %s\n"%mediaurl)
+                    if fsf is not None:
+                        fsf.write("Getting mp3 from Amazon: %s\n"%mediaurl)
                     AMAZON_HIT_STAT += 1
-                    curmessagecontent = self.msglabeltext.get()
-                    replacementmessage = "AMAZON: %s"%AMAZON_HIT_STAT
-                    curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
-                    self.msglabeltext.set(curmessagecontent)
+                    if desktop:
+                        curmessagecontent = self.msglabeltext.get()
+                        replacementmessage = "AMAZON: %s"%AMAZON_HIT_STAT
+                        curmessagecontent = statuspattern.sub(replacementmessage, curmessagecontent)
+                        self.msglabeltext.set(curmessagecontent)
                     if self.logging:
                         self.logger.write("Fetched Amazon URL: %s\n"%mediaurl)
+                    if fsf is not None:
+                        fsf.write("Fetched Amazon URL: %s\n"%mediaurl)
+                        fsf.write("AMAZON: %s"%AMAZON_HIT_STAT)
                     if self.DEBUG:
                         t = str(int(time.time() * 1000))
                         if response is not None:
@@ -1898,6 +1941,8 @@ class BuzzBot(object):
                 self.logger.write("Done hitting podcasts for %s\n"%sitename)
         else:
             boolret = False
+        if fsf is not None:
+            fsf.close()
         if self.cleanupmedia:
             self.cleanupdownloadedmedia()
         return boolret
