@@ -13,7 +13,7 @@ from django.template import loader
 from django.conf import settings
 
 from hitapp.models import HitManager, Proxies, ProxyUsage, APIKeys
-from hitapp.tasks import hitbot_webrun, hitbot_webstop, hitbot_webstatus
+from hitapp.tasks import hitbot_webrun, hitbot_webstop
 
 from django.http import HttpResponseRedirect
 from django.contrib.auth import authenticate, login
@@ -313,10 +313,21 @@ def stophitbot(request):
     hitbot_webstop.apply_async()
 
 
+@csrf_protect
 def runstatus(request):
     if not request.user.is_authenticated:
-        return HttpResponseRedirect("/hitapp/login/?err=3")
-    hitbot_webstatus.apply_async()
+        return HttpResponse("Login to view status")
+    if request.method != 'POST':
+        return HttpResponse("Invalid method of call")
+    statusfilepath = None
+    if 'statusfile' in request.POST.keys():
+        statusfilepath = request.POST.get('statusfile', None)
+    if statusfilepath is not None:
+        # Read the last line of the file
+        line = subprocess.check_output(['tail', '-1', statusfilepath])
+        return HttpResponse(line)
+    else:
+        return HttpResponse("Could not find the 'statusfile' parameter in request")
 
 
 def manageproxies(request):

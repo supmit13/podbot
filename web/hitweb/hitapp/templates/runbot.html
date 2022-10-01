@@ -100,8 +100,10 @@
 	  xmlhttp.onreadystatechange = function(){
 	  if(xmlhttp.readyState == 4 && xmlhttp.status==200){
 	    //alert(xmlhttp.responseText);
-	    runstatus = document.getElementById('runstatus');
-	    runstatus.innerHTML = xmlhttp.responseText;
+	    runstatuselement = document.getElementById('runstatus');
+            statusfileelement = document.getElementById('statusfile');
+	    //runstatuselement.innerHTML = xmlhttp.responseText;
+            statusfileelement.value = xmlhttp.responseText; // This would be the file path on the server
 	    intid = window.setInterval(getstatus, 10000); // This will refresh the status div every 10 seconds.
 	    document.frmrunbot.intervalid.value = intid;
 	  }
@@ -113,7 +115,7 @@
 
     function stopbot(){
 	let formData = new FormData();
-        csrf = document.frmmanageproxies.csrfmiddlewaretoken.value;
+        csrf = document.frmrunbot.csrfmiddlewaretoken.value;
         formData.append("csrfmiddlewaretoken", csrf);
 	var xmlhttp;
 	  if (window.XMLHttpRequest){
@@ -138,7 +140,32 @@
     }
 
     function getstatus(){
-	
+	statusfilepath = document.getElementById('statusfile').value;
+        // Send an xmlhttprequest to read the last line of the file and append it to 'runstatus' div innerHTML
+	let formData = new FormData();
+        csrf = document.frmrunbot.csrfmiddlewaretoken.value;
+        formData.append("csrfmiddlewaretoken", csrf);
+   	formData.append("statusfile", statusfilepath);
+	var xmlhttp;
+	  if (window.XMLHttpRequest){
+	    xmlhttp=new XMLHttpRequest();
+	  }
+	  else{
+	    xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+	  }
+	  // Register the handler
+	  xmlhttp.onreadystatechange = function(){
+	  if(xmlhttp.readyState == 4 && xmlhttp.status==200){
+	    //alert(xmlhttp.responseText);
+	    runstatusel = document.getElementById('runstatus');
+            existingstatus = runstatusel.innerHTML;
+            statuscontent = xmlhttp.responseText + "<br />" + existingstatus;
+	    runstatusel.innerHTML = statuscontent;
+	  }
+	  };
+	  xmlhttp.open("POST", '/hitapp/runstatus/', true);
+	  xmlhttp.setRequestHeader("X-CSRFToken", csrf);
+	  xmlhttp.send(formData);
     }
 
 </script>
@@ -406,6 +433,7 @@
                                     </table>
 				    <div id='runstatus'></div>
 				    <input type='hidden' name='intervalid' id='intervalid' value=''>
+				    <input type='hidden' name='statusfile' id='statusfile' value=''>
                                 </form></div>
 				
                             </div>

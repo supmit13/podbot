@@ -213,9 +213,4 @@ def hitbot_webstop():
     pass
 
 
-@shared_task
-def hitbot_webstatus():
-    pass
-
-
 
