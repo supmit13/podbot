@@ -155,18 +155,13 @@ class WebUI(object):
         time.sleep(2) # sleep 2 seconds.
         for tj in self.threadslist:
             tj.join()
-        #curmessagecontent = self.msglabeltext.get()
+        rmcmd = "rm -f %s"%statusfile
+        x = subprocess.Popen(rmcmd, shell=True, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+        #statusremovemessage = x.stdout.read()
+        # Done. The statusfile should be gone now.
         curmessagecontent = ""
         curmessagecontent += "\n\nFinished hitting targets."
         self.errmsg = curmessagecontent
-        # Write this message in history
-        #historyfile = os.getcwd() + os.path.sep + "hitbot2_" + time.strftime("%Y%m%d%H%M%S",time.localtime()) + ".history"
-        #if not os.path.exists(historyfile):
-        #    fh = open(historyfile, "w")
-        #else:
-        #    fh = open(historyfile, "a")
-        #fh.write(curmessagecontent + "\n=================================\n\n")
-        #fh.close()
         return True
 
 
@@ -180,13 +175,6 @@ class WebUI(object):
         # Write this message in history
         curmessagecontent = "Stopping bot - user pressed stop button"
         print(curmessagecontent)
-        #historyfile = os.getcwd() + os.path.sep + "hitbot2_" + time.strftime("%Y%m%d%H%M%S",time.localtime()) + ".history"
-        #if not os.path.exists(historyfile):
-        #    fh = open(historyfile, "w")
-        #else:
-        #    fh = open(historyfile, "a")
-        #fh.write(curmessagecontent + "\n=================================\n\n")
-        #fh.close()
         if self.buzz is not None and self.buzz.logger is not None:
             self.buzz.logger.close()
         sys.exit()

@@ -113,6 +113,7 @@
 	  xmlhttp.send(formData);
     }
 
+
     function stopbot(){
 	let formData = new FormData();
         csrf = document.frmrunbot.csrfmiddlewaretoken.value;
@@ -138,6 +139,7 @@
 	  xmlhttp.setRequestHeader("X-CSRFToken", csrf);
 	  xmlhttp.send(formData);
     }
+
 
     function getstatus(){
 	statusfilepath = document.getElementById('statusfile').value;

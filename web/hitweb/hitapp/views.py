@@ -5,6 +5,7 @@ import string, random
 import urllib.parse
 import urllib
 import base64
+import subprocess
 
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -211,7 +212,7 @@ def runhitbot(request):
         # Add HitManager objects - logic: If buzzsprout url is given, add 3 HitManager objects, one each for amazon, spotify and apple.
         # If amazononly or spotifyonly or appleonly is true, add one HitManager object for the relevant platform.
         errmsg = ""
-        tstr = str(int(time.time() * 1000)) + ".status"
+        tstr = "hb_" + str(int(time.time() * 1000)) + ".status"
         hitbotstatusdir = os.getcwd() + os.path.sep + "hitstatus"
         if not os.path.exists(hitbotstatusdir) or not os.path.isdir(hitbotstatusdir):
             os.makedirs(hitbotstatusdir, 0o777)
@@ -323,8 +324,9 @@ def runstatus(request):
     if 'statusfile' in request.POST.keys():
         statusfilepath = request.POST.get('statusfile', None)
     if statusfilepath is not None:
-        # Read the last line of the file
-        line = subprocess.check_output(['tail', '-1', statusfilepath])
+        # Read the last 10 lines of the status file ... 
+        line = subprocess.check_output(['tail', '-10', statusfilepath])
+        # ... and send it to the frontend.
         return HttpResponse(line)
     else:
         return HttpResponse("Could not find the 'statusfile' parameter in request")
