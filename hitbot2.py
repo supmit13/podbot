@@ -1943,6 +1943,7 @@ class BuzzBot(object):
             boolret = False
         if fsf is not None:
             fsf.close()
+            os.unlink(statusfile)
         if self.cleanupmedia:
             self.cleanupdownloadedmedia()
         return boolret
