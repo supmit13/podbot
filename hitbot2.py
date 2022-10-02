@@ -1229,15 +1229,17 @@ class AppleBot(object):
 
 class BuzzBot(object):
     
-    def __init__(self, podlisturl, amazonkey, spotifyclientid, spotifyclientsecret, parent, proxieslist=[]):
+    def __init__(self, podlisturl, amazonkey, spotifyclientid, spotifyclientsecret, parent, proxieslist=[], desktop=True):
         self.DEBUG = False
         self.humanize = True
         self.logging = True
         self.cleanupmedia = True
         self.platformonly = None
-        self.parent = weakref.ref(parent)
+        self.desktop = desktop
+        if desktop == True:
+            self.parent = weakref.ref(parent)
+            self.msglabeltext = parent.msglabeltext
         self.quitflag = False
-        self.msglabeltext = parent.msglabeltext
         self.proxies = {'https' : proxieslist,}
         self.amazonkey = amazonkey
         self.spotifyclientid = spotifyclientid

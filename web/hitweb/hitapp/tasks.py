@@ -105,7 +105,7 @@ class WebUI(object):
     (possibly by killing the process).
     """
     def runbot(self, targeturl, idlist, amazonsettarget=-1, spotifysettarget=-1, applesettarget=-1, statusfile=None):
-        self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret, self, self.proxieslist)
+        self.buzz = BuzzBot(targeturl, self.amazonkey, self.spotifyclientid, self.spotifyclientsecret, self, self.proxieslist, False)
         self.buzz.DEBUG = self.DEBUG
         self.buzz.humanize = self.humanize
         self.buzz.logging = self.logging
