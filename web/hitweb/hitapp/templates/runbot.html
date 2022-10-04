@@ -162,6 +162,8 @@
 	    runstatusel = document.getElementById('runstatus');
             existingstatus = runstatusel.innerHTML;
             statuscontent = xmlhttp.responseText + "<br />" + existingstatus;
+	    statuscontent = statuscontent.replace("\n", "<br />");
+	    statuscontent = statuscontent.replace("\r", "<br />");
 	    runstatusel.innerHTML = statuscontent;
 	  }
 	  };
