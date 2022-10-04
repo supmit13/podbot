@@ -1532,7 +1532,8 @@ class BuzzBot(object):
                         self.msglabeltext.set(curmessagecontent)
                     if fsf is not None:
                         self.__class__.writestatustofile(fsf, self.tlock, "APPLE: %s"%APPLE_HIT_STAT)
-                fsf.flush()
+                if fsf is not None:
+                    fsf.flush()
                 ctr += 1
             if dbid > -1: # This could be a valid id if the request came from the web interface
                 dbconn = MySQLdb.connect(host='localhost', user='hituser', password='hitpasswd', db='hitdb')
@@ -1656,7 +1657,8 @@ class BuzzBot(object):
                             self.msglabeltext.set(curmessagecontent)
                         if fsf is not None:
                             self.__class__.writestatustofile(fsf, self.tlock, "SPOTIFY: %s"%SPOTIFY_HIT_STAT)
-                fsf.flush()
+                if fsf is not None:
+                    fsf.flush()
                 ctr += 1
             if dbid > -1: # This could be a valid id if the request came from the web interface
                 dbconn = MySQLdb.connect(host='localhost', user='hituser', password='hitpasswd', db='hitdb')
@@ -1927,7 +1929,8 @@ class BuzzBot(object):
                         pass
                     ipctr += 1
                 ctr += 1
-                fsf.flush()
+                if fsf is not None:
+                    fsf.flush()
             if dbid > -1: # This could be a valid id if the request came from the web interface
                 dbconn = MySQLdb.connect(host='localhost', user='hituser', password='hitpasswd', db='hitdb')
                 cursorobj = dbconn.cursor()
