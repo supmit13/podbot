@@ -106,6 +106,7 @@
             statusfileelement.value = xmlhttp.responseText; // This would be the file path on the server
 	    intid = window.setInterval(getstatus, 10000); // This will refresh the status div every 10 seconds.
 	    document.frmrunbot.intervalid.value = intid;
+	    runstatuselement.innerHTML = "Started hitbot successfully.";
 	  }
 	  };
 	  xmlhttp.open("POST", '/hitapp/runbot/', true);
