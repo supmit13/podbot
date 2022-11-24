@@ -1029,7 +1029,9 @@ class SpotifyBot(object):
 
 
     def getepisode(self, epurl):
-        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity;q=1, *;q=0', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'no-cors', 'Sec-Fetch-Dest' : 'audio', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'range' : 'bytes=0-', 'Cookie' : self.httpheaders['cookie']}
+        httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity;q=1, *;q=0', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'no-cors', 'Sec-Fetch-Dest' : 'audio', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'range' : 'bytes=0-'}
+        if 'cookie' in self.httpheaders.keys():
+            httpheaders['Cookie'] = self.httpheaders['cookie']
         if self.DEBUG:
             print("Spotify Cookie: %s"%self.httpheaders['cookie'])
         self.makehttprequest(epurl, headers=httpheaders)
@@ -1540,7 +1542,7 @@ class BuzzBot(object):
                 cursorobj = dbconn.cursor()
                 timenow = datetime.now()
                 sql = "update hitweb_manager set actualcount=%s, endtime='%s' where id=%s"%(APPLE_HIT_STAT, timenow, dbid)
-                cursorobj.execute()
+                cursorobj.execute(sql)
                 dbconn.commit()
                 dbconn.close()
             # Check to see if self.podcasttitle exists in the retrieved content
@@ -1665,7 +1667,7 @@ class BuzzBot(object):
                 cursorobj = dbconn.cursor()
                 timenow = datetime.now()
                 sql = "update hitweb_manager set actualcount=%s, endtime='%s' where id=%s"%(SPOTIFY_HIT_STAT, timenow, dbid)
-                cursorobj.execute()
+                cursorobj.execute(sql)
                 dbconn.commit()
                 dbconn.close()
             # Check to see if self.podcasttitle exists in the retrieved content
@@ -1936,7 +1938,7 @@ class BuzzBot(object):
                 cursorobj = dbconn.cursor()
                 timenow = datetime.now()
                 sql = "update hitweb_manager set actualcount=%s, endtime='%s' where id=%s"%(AMAZON_HIT_STAT, timenow, dbid)
-                cursorobj.execute()
+                cursorobj.execute(sql)
                 dbconn.commit()
                 dbconn.close()
             # Check to see if self.podcasttitle exists in the retrieved content
@@ -1948,7 +1950,7 @@ class BuzzBot(object):
         else:
             boolret = False
         # We will be leaving this method with the statusfile still open and possibly being written to by other threads.
-        if self.cleanupmedia:
+        if (sitename.lower() == "amazon" or sitename.lower() == "spotify" or sitename.lower() == "apple") and self.cleanupmedia:
             self.cleanupdownloadedmedia()
         return boolret
 
@@ -2175,7 +2177,7 @@ class GUI(object):
         proxiestext = self.proxytext.get('1.0', 'end-1c')
         proxieslines = proxiestext.split("\n")
         self.proxieslist = []
-        self.proxypattern = re.compile("^https\:\/\/\d+\.\d+\.\d+\.\d+\:\d+", re.IGNORECASE)
+        self.proxypattern = re.compile("^https?\:\/\/\d+\.\d+\.\d+\.\d+\:\d+", re.IGNORECASE)
         for line in proxieslines:
             if not re.search(self.proxypattern, line):
                 continue
