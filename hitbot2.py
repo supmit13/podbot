@@ -157,17 +157,34 @@ class AmazonBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
-            self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+            if 'https' in self.proxies.keys():
+                self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+                self.proxytype = "https"
+            elif 'socks5' in self.proxies.keys():
+                self.proxyip, self.proxyport = self.proxies['socks5'][0].split(":")
+                self.proxytype = "socks"
+            else:
+                self.proxyip, self.proxyport = "", ""
+                self.proxytype = ""
         except:
             self.proxyip, self.proxyport = "", ""
+            self.proxytype = ""
         try:
             self.context = createrequestcontext()
             #if self.proxyip != "":
             #    socks.set_default_proxy(socks.SOCKS5, self.proxyip, int(self.proxyport))
             #    socket.socket = socks.socksocket
             self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
-            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            if self.proxytype == "https":
+                self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            elif self.proxytype == "socks5":
+                socks.set_default_proxy(socks.SOCKS5, self.proxyip, self.proxyport)
+                socket.socket = socks.socksocket
+                #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+            else:
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
@@ -203,17 +220,43 @@ class AmazonBot(object):
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
             httpsrandomctr = getrandomint(0, httpsproxycount-1)
-            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
-            proxparts = self.proxies['https'][httpsrandomctr].split("//")
-            if proxparts.__len__() > 1:
-                self.selectedproxy = proxparts[1].split(":")[0]
-                self.selectedproxyport = proxparts[1].split(":")[1]
+            if self.proxytype == "https":
+                self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+                proxparts = self.proxies['https'][httpsrandomctr].split("//")
+                if proxparts.__len__() > 1:
+                    self.selectedproxy = proxparts[1].split(":")[0]
+                    self.selectedproxyport = proxparts[1].split(":")[1]
+                else:
+                    self.selectedproxy = proxparts[0].split(":")[0]
+                    self.selectedproxyport = proxparts[0].split(":")[1]
+            elif self.proxytype == "socks5":
+                proxyip, proxyport = "", ""
+                proxyparts = self.proxies['socks5'][httpsrandomctr].split(":")
+                proxyip = proxyparts[0]
+                if proxyparts.__len__() > 1:
+                    proxyport = proxyparts[1]
+                else:
+                    proxyport = "80"
+                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socket.socket = socks.socksocket
+                #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+                proxparts = self.proxies['socks5'][httpsrandomctr].split("//")
+                if proxparts.__len__() > 1:
+                    self.selectedproxy = proxparts[1].split(":")[0]
+                    self.selectedproxyport = proxparts[1].split(":")[1]
+                else:
+                    self.selectedproxy = proxparts[0].split(":")[0]
+                    self.selectedproxyport = proxparts[0].split(":")[1]
             else:
-                self.selectedproxy = proxparts[0].split(":")[0]
-                self.selectedproxyport = proxparts[0].split(":")[1]
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+                self.selectedproxy, self.selectedproxyport = "", ""
             if self.DEBUG:
-                print("Proxy used (Amazon): %s"%self.proxies['https'][httpsrandomctr])
+                if self.proxytype == "https":
+                    print("Proxy used (Amazon): %s"%self.proxies['https'][httpsrandomctr])
+                elif self.proxytype == "socks5":
+                    print("Proxy used (Amazon): %s"%self.proxies['socks5'][httpsrandomctr])
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
@@ -226,20 +269,35 @@ class AmazonBot(object):
         self.httpopener = self.buildopenerrandomproxy()
         self.httprequest = urllib.request.Request(requrl, headers=self.httpheaders)
         session = HTMLSession()
-        if self.proxies['https'].__len__() > 0:
-            httpsproxycount = self.proxies['https'].__len__() - 1
-            httpsrandomctr = getrandomint(0, httpsproxycount-1)
-            try:
-                self.httpresponse = session.get(requrl, proxies={'https': self.proxies['https'][httpsrandomctr]}, timeout=TIMEOUT_S)
-                if self.DEBUG:
-                    print("Proxy used (Amazon): %s"%self.proxies['https'][httpsrandomctr])
-            except:
+        if self.proxytype == "https":
+            if self.proxies['https'].__len__() > 0:
+                httpsproxycount = self.proxies['https'].__len__() - 1
+                httpsrandomctr = getrandomint(0, httpsproxycount-1)
                 try:
-                    self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
-                except:
+                    self.httpresponse = session.get(requrl, proxies={'https': self.proxies['https'][httpsrandomctr]}, timeout=TIMEOUT_S)
                     if self.DEBUG:
-                        print("Request to '%s' failed: %s"%(requrl, sys.exc_info()[1].__str__()))
-                    return None
+                        print("Proxy used (Amazon): %s"%self.proxies['https'][httpsrandomctr])
+                except:
+                    try:
+                        self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
+                    except:
+                        if self.DEBUG:
+                            print("Request to '%s' failed: %s"%(requrl, sys.exc_info()[1].__str__()))
+                        return None
+            elif self.proxytype == "socks5":
+                httpsproxycount = self.proxies['socks5'].__len__() - 1
+                httpsrandomctr = getrandomint(0, httpsproxycount-1)
+                try:
+                    self.httpresponse = session.get(requrl, proxies={'https': self.proxies['socks5'][httpsrandomctr]}, timeout=TIMEOUT_S)
+                    if self.DEBUG:
+                        print("Proxy used (Amazon): %s"%self.proxies['socks5'][httpsrandomctr])
+                except:
+                    try:
+                        self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
+                    except:
+                        if self.DEBUG:
+                            print("Request to '%s' failed: %s"%(requrl, sys.exc_info()[1].__str__()))
+                        return None
         else:
             try:
                 self.httpresponse = session.get(requrl, timeout=TIMEOUT_S)
@@ -665,17 +723,34 @@ class SpotifyBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
-            self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+            if 'https' in self.proxies.keys():
+                self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+                self.proxytype = "https"
+            elif 'socks5' in self.proxies.keys():
+                self.proxyip, self.proxyport = self.proxies['socks5'][0].split(":")
+                self.proxytype = "socks5"
+            else:
+                self.proxyip, self.proxyport = "", ""
+                self.proxytype = ""
         except:
             self.proxyip, self.proxyport = "", ""
+            self.proxytype = ""
         try:
             self.context = createrequestcontext()
             #if self.proxyip != "":
             #    socks.set_default_proxy(socks.SOCKS5, self.proxyip, int(self.proxyport))
             #    socket.socket = socks.socksocket
             self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
-            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            if self.proxytype == "https":
+                self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            elif self.proxytype == "socks5":
+                socks.set_default_proxy(socks.SOCKS5, self.proxyip, self.proxyport)
+                socket.socket = socks.socksocket
+                #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+            else:
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
@@ -718,15 +793,35 @@ class SpotifyBot(object):
         
 
     def buildopenerrandomproxy(self):
-        httpsproxycount = self.proxies['https'].__len__() - 1
+        if self.proxytype == "https":
+            httpsproxycount = self.proxies['https'].__len__() - 1
+        elif self.proxytype == "socks5":
+            httpsproxycount = self.proxies['socks5'].__len__() - 1
+        else:
+            httpsproxycount = 0
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
             httpsrandomctr = getrandomint(0, httpsproxycount-1)
-            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
-            if self.DEBUG:
-                print("Proxy used (Spotify): %s"%self.proxies['https'][httpsrandomctr])
+            if self.proxytype == "https":
+                self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+                if self.DEBUG:
+                    print("Proxy used (Spotify): %s"%self.proxies['https'][httpsrandomctr])
+            elif self.proxytype == "socks5":
+                proxyip, proxyport = "", ""
+                proxyparts = self.proxies['socks5'][httpsrandomctr].split(":")
+                proxyip = proxyparts[0]
+                if proxyparts.__len__() > 1:
+                    proxyport = proxyparts[1]
+                else:
+                    proxyport = "80"
+                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socket.socket = socks.socksocket
+                #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+            else:
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
@@ -1058,17 +1153,34 @@ class AppleBot(object):
         self.httpresponse = None
         self.httpcontent = None
         try:
-            self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+            if 'https' in self.proxies.keys():
+                self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+                self.proxytype = "https"
+            elif 'socks5' in self.proxies.keys():
+                self.proxyip, self.proxyport = self.proxies['socks5'][0].split(":")
+                self.proxytype = "socks5"
+            else:
+                self.proxyip, self.proxyport = "", ""
+                self.proxytype = ""
         except:
             self.proxyip, self.proxyport = "", ""
+            self.proxytype = ""
         try:
             self.context = createrequestcontext()
             #if self.proxyip != "":
             #    socks.set_default_proxy(socks.SOCKS5, self.proxyip, int(self.proxyport))
             #    socket.socket = socks.socksocket
             self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
-            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler, NoRedirectHandler())
+            if self.proxytype == "https":
+                self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler, NoRedirectHandler())
+            elif self.proxytype == "socks5":
+                socks.set_default_proxy(socks.SOCKS5, self.proxyip, self.proxyport)
+                socket.socket = socks.socksocket
+                #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+            else:
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler(), NoRedirectHandler())
@@ -1095,10 +1207,28 @@ class AppleBot(object):
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
             httpsrandomctr = getrandomint(0, httpsproxycount-1)
-            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler, NoRedirectHandler())
+            if self.proxytype == "https":
+                self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler, NoRedirectHandler())
+            elif self.proxytype == "socks5":
+                proxyip, proxyport = "", ""
+                proxyparts = self.proxies['socks5'][httpsrandomctr].split(":")
+                proxyip = proxyparts[0]
+                if proxyparts.__len__() > 1:
+                    proxyport = proxyparts[1]
+                else:
+                    proxyport = "80"
+                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socket.socket = socks.socksocket
+                #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+            else:
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
             if self.DEBUG:
-                print("Proxy used (Apple): %s"%self.proxies['https'][httpsrandomctr])
+                if self.proxytype == "https":
+                    print("Proxy used (Apple): %s"%self.proxies['https'][httpsrandomctr])
+                elif self.proxytype == "socks5":
+                    print("Proxy used (Apple): %s"%self.proxies['socks5'][httpsrandomctr])
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, NoRedirectHandler())
@@ -1142,14 +1272,26 @@ class AppleBot(object):
         return False
 
 
-    def listpodcastsonpage(self):
+    def listpodcastsonpage(self, playlisttype="podcast"):
         content = str(self.httpcontent)
-        soup = BeautifulSoup(content, features="html.parser")
-        allanchortags = soup.find_all("a", {'class' : 'link tracks__track__link--block'})
-        podcastlinks = []
-        for atag in allanchortags:
-            alink = atag['href']
-            podcastlinks.append(alink)
+        if playlisttype == "podcast":
+            soup = BeautifulSoup(content, features="html.parser")
+            allanchortags = soup.find_all("a", {'class' : 'link tracks__track__link--block'})
+            podcastlinks = []
+            for atag in allanchortags:
+                alink = atag['href']
+                podcastlinks.append(alink)
+        else:
+            tracklistpattern = re.compile("\"track\"\:(\[[^\]]+\])", re.DOTALL)
+            rsp = re.search(tracklistpattern, content)
+            podcastlinks = []
+            if rsp:
+                tracksliststr = rsp.groups()[0]
+                trackslist = json.loads(tracksliststr)
+                #print(trackslist)
+                for track in trackslist:
+                    trackurl = track['url']
+                    podcastlinks.append(trackurl)
         return podcastlinks
 
 
@@ -1157,6 +1299,7 @@ class AppleBot(object):
         self.makehttprequest(podcastpagelink)
         content = self.gethttpresponsecontent()
         content = content.replace("\\", "")
+        #print(content)
         assetpattern = re.compile('\"assetUrl\":\"([^\"]+)\"', re.DOTALL)
         aps = re.search(assetpattern, content)
         resourceurl = ""
@@ -1210,6 +1353,47 @@ class AppleBot(object):
         return mediacontent
 
 
+    def downloadmusic(self, musiclink, dumpdir):
+        linkpattern = re.compile("\?i=(\d+)$")
+        lps = re.search(linkpattern, musiclink)
+        mediacontent = b""
+        if lps:
+            musicid = lps.groups()[0]
+            auth_token = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IldlYlBsYXlLaWQifQ.eyJpc3MiOiJBTVBXZWJQbGF5IiwiaWF0IjoxNjY4MDk4NjU3LCJleHAiOjE2NzUzNTYyNTcsInJvb3RfaHR0cHNfb3JpZ2luIjpbImFwcGxlLmNvbSJdfQ.fN64HwtZGudH_Kh4YJhb4YkSxpCo-i5tjtfiJSvx-I7RRYbKAcPL6gVcniXMqJZMby6xaISnoiQgClpCBH_GGg"
+            musicapilink = "https://amp-api.music.apple.com/v1/catalog/ph/songs/%s"%musicid
+            httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36', 'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity;q=1, *;q=0', 'Accept-Charset' : 'ISO-8859-1,utf-8;q=0.7,*;q=0.7', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://music.apple.com', 'Origin' : 'https://music.apple.com', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'range' : 'bytes=0-', 'Authorization' : 'Bearer %s'%auth_token}
+            self.httpopener = self.buildopenerrandomproxy()
+            #print("Resource URL: %s"%resourceurl)
+            self.httprequest = urllib.request.Request(musicapilink, headers=httpheaders)
+            try:
+                self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
+            except:
+                print("Error making request to %s: %s"%(musicapilink, sys.exc_info()[1].__str__()))
+                return mediacontent
+            jsoncontentstr = self.httpresponse.read()
+            try:
+                jsoncontent = json.loads(jsoncontentstr)
+                mediapreviewurl = jsoncontent['data'][0]['attributes']['previews'][0]['url']
+            except:
+                print("Error while processing video download link (Apple): %s"%sys.exc_info()[1].__str__())
+                mediapreviewurl = None
+            if mediapreviewurl is not None:
+                print("Apple media preview url is '%s' (Note: This is preview url. Implement downloading of entire content by signing in.)"%mediapreviewurl)
+                try:
+                    self.httprequest = urllib.request.Request(mediapreviewurl, headers=httpheaders)
+                    self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
+                    mediacontent = self.httpresponse.read()
+                    if self.DEBUG and mediacontent != b"":
+                        t = str(int(time.time() * 1000))
+                        dumpfile = dumpdir + os.path.sep + "apple_" + t + ".mp3"
+                        fp = open(dumpfile, "wb")
+                        fp.write(mediacontent)
+                        fp.close()
+                except:
+                    print("Error in making media request for Apple: %s"%sys.exc_info()[1].__str__())
+        return mediacontent
+
+
     def requestwebexp(self, siteurl, pageid, cookies):
         requesturl = "https://xp.apple.com/report/2/xp_amp_web_exp"
         t = int(time.time() * 1000)
@@ -1244,7 +1428,17 @@ class BuzzBot(object):
             self.parent = weakref.ref(parent)
             self.msglabeltext = parent.msglabeltext
         self.quitflag = False
+        self.proxytype = "https"
+        socks5pattern = re.compile("socks5\:\/\/", re.IGNORECASE)
+        httpspattern = re.compile("https\:\/\/", re.IGNORECASE)
+        for i in range(0,proxieslist.__len__()):
+            proxieslist[i] = socks5pattern.sub("", proxieslist[i])
+            proxieslist[i] = httpspattern.sub("", proxieslist[i])
         self.proxies = {'https' : proxieslist,}
+        if proxieslist.__len__() > 0:
+            if re.search(socks5pattern, proxieslist[0]):
+                self.proxies = {'socks5' : proxieslist,}
+                self.proxytype = "socks5"
         self.amazonkey = amazonkey
         self.spotifyclientid = spotifyclientid
         self.spotifyclientsecret = spotifyclientsecret
@@ -1257,17 +1451,31 @@ class BuzzBot(object):
         self.logfile = self.logdir + os.path.sep + "hitbot.log"
         self.logger = Logger(self.logfile)
         try:
-            self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+            if self.proxytype == "https":
+                self.proxyip, self.proxyport = self.proxies['https'][0].split(":")
+            elif self.proxytype == "socks5":
+                self.proxyip, self.proxyport = self.proxies['socks5'][0].split(":")
+            else:
+                self.proxyip, self.proxyport = "", ""
         except:
             self.proxyip, self.proxyport = "", ""
+        self.default_socket = socket.socket
         try:
             self.context = createrequestcontext()
             #if self.proxyip != "":
             #    socks.set_default_proxy(socks.https, self.proxyip, int(self.proxyport))
             #    socket.socket = socks.socksocket
             self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
-            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0]})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            if self.proxytype == "https":
+                self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            elif self.proxytype == "socks5":
+                socks.set_default_proxy(socks.SOCKS5, self.proxyip, self.proxyport)
+                socket.socket = socks.socksocket
+                #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+            else:
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), urllib.request.HTTPSHandler())
@@ -1299,15 +1507,38 @@ class BuzzBot(object):
 
 
     def buildopenerrandomproxy(self):
-        httpsproxycount = self.proxies['https'].__len__() - 1
+        if self.proxytype == "https":
+            httpsproxycount = self.proxies['https'].__len__() - 1
+        elif self.proxytype == "socks5":
+            httpsproxycount = self.proxies['socks5'].__len__() - 1
+        else:
+            httpsproxycount = 0
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
             httpsrandomctr = getrandomint(0, httpsproxycount-1)
-            self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
-            self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            if self.proxytype == "https":
+                self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][httpsrandomctr],})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+            elif self.proxytype == "socks5":
+                proxyip, proxyport = "", ""
+                proxyparts = self.proxies['socks5'][httpsrandomctr].split(":")
+                proxyip = proxyparts[0]
+                if proxyparts.__len__() > 1:
+                    proxyport = proxyparts[1]
+                else:
+                    proxyport = "80"
+                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socket.socket = socks.socksocket
+                #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+            else:
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
             if self.logging:
-                self.logger.write("Created opener using proxy %s\n"%self.proxies['https'][httpsrandomctr])
+                if self.proxytype == "https":
+                    self.logger.write("Created opener using proxy %s\n"%self.proxies['https'][httpsrandomctr])
+                elif self.proxytype == "socks5":
+                    self.logger.write("Created opener using proxy %s\n"%self.proxies['socks5'][httpsrandomctr])
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             if self.logging:
@@ -1320,10 +1551,25 @@ class BuzzBot(object):
         self.context = createrequestcontext()
         self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
         try:
-            self.proxyhandler = urllib.request.ProxyHandler({'https': 'https://' + httpsproxyipport,})
-            httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
-            if self.logging:
-                self.logger.write("Created opener using proxy %s\n"%httpsproxyipport)
+            if self.proxytype == "https":
+                self.proxyhandler = urllib.request.ProxyHandler({'https': 'https://' + httpsproxyipport,})
+                httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler, self.proxyhandler)
+                if self.logging:
+                    self.logger.write("Created opener using proxy %s\n"%httpsproxyipport)
+            elif self.proxytype == "socks5":
+                proxyip, proxyport = "", ""
+                proxyparts = httpsproxyipport.split(":")
+                proxyip = proxyparts[0]
+                if proxyparts.__len__() > 1:
+                    proxyport = proxyparts[1]
+                else:
+                    proxyport = "80"
+                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socket.socket = socks.socksocket
+                #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
+            else:
+                self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
         except:
             print("Error creating opener with proxy: %s"%sys.exc_info()[1].__str__())
             if self.logging:
@@ -1503,7 +1749,11 @@ class BuzzBot(object):
                 resp = applebot.makehttprequest(siteurl)
                 cookies = BuzzBot._getCookieFromResponse(resp)
                 applebot.gethttpresponsecontent()
-                podcastlinks = applebot.listpodcastsonpage()
+                musicpattern = re.compile("music\.apple\.com", re.IGNORECASE)
+                ltype = "podcast"
+                if re.search(musicpattern, siteurl):
+                    ltype = "music"
+                podcastlinks = applebot.listpodcastsonpage(ltype)
                 if self.DEBUG:
                     print("APPLE ITERATION #%s ======================="%ctr)
                 if self.logging:
@@ -1525,7 +1775,11 @@ class BuzzBot(object):
                     if self.humanize:
                         ht = getrandominterval(5)
                         time.sleep(ht)
-                    resp = applebot.downloadpodcast(pclink, self.dumpdir)
+                    # https://amp-api.music.apple.com/v1/catalog/ph/songs/1651846275
+                    if ltype == "podcast":
+                        resp = applebot.downloadpodcast(pclink, self.dumpdir)
+                    elif ltype == "music":
+                        resp = applebot.downloadmusic(pclink, self.dumpdir)
                     APPLE_HIT_STAT += 1
                     if desktop:
                         curmessagecontent = self.msglabeltext.get()
@@ -2177,9 +2431,10 @@ class GUI(object):
         proxiestext = self.proxytext.get('1.0', 'end-1c')
         proxieslines = proxiestext.split("\n")
         self.proxieslist = []
-        self.proxypattern = re.compile("^https?\:\/\/\d+\.\d+\.\d+\.\d+\:\d+", re.IGNORECASE)
+        self.proxypatternhttp = re.compile("^https?\:\/\/\d+\.\d+\.\d+\.\d+\:\d+", re.IGNORECASE)
+        self.proxypatternsocks5 = re.compile("^socks5?\:\/\/\d+\.\d+\.\d+\.\d+\:\d+", re.IGNORECASE)
         for line in proxieslines:
-            if not re.search(self.proxypattern, line):
+            if not re.search(self.proxypatternhttp, line) and not re.search(self.proxypatternsocks5, line):
                 continue
             self.proxieslist.append(line)
         amazontargethitscount = self.targetamazonhits.get()
@@ -2288,6 +2543,8 @@ class GUI(object):
         if self.buzz is not None and self.buzz.logger is not None:
             self.buzz.logger.close()
         self.runbutton.config(state=ACTIVE)
+        if self.buzz is not None:
+            socket.socket = self.buzz.default_socket
         sys.exit()
 
 
