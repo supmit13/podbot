@@ -238,7 +238,7 @@ class AmazonBot(object):
                     proxyport = proxyparts[1]
                 else:
                     proxyport = "80"
-                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socks.set_default_proxy(socks.SOCKS5, proxyip, int(proxyport))
                 socket.socket = socks.socksocket
                 #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
                 self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
@@ -816,7 +816,7 @@ class SpotifyBot(object):
                     proxyport = proxyparts[1]
                 else:
                     proxyport = "80"
-                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socks.set_default_proxy(socks.SOCKS5, proxyip, int(proxyport))
                 socket.socket = socks.socksocket
                 #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
                 self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
@@ -880,7 +880,7 @@ class SpotifyBot(object):
         try:
             self.httpresponse = self.httpopener.open(self.httprequest, timeout=TIMEOUT_S)
         except:
-            print("Error making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
+            print("Error1 making request to %s: %s"%(requrl, sys.exc_info()[1].__str__()))
             return None
         return self.httpresponse
 
@@ -1218,7 +1218,7 @@ class AppleBot(object):
                     proxyport = proxyparts[1]
                 else:
                     proxyport = "80"
-                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socks.set_default_proxy(socks.SOCKS5, proxyip, int(proxyport))
                 socket.socket = socks.socksocket
                 #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
                 self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
@@ -1432,13 +1432,13 @@ class BuzzBot(object):
         socks5pattern = re.compile("socks5\:\/\/", re.IGNORECASE)
         httpspattern = re.compile("https\:\/\/", re.IGNORECASE)
         for i in range(0,proxieslist.__len__()):
+            if re.search(socks5pattern, proxieslist[i]):
+                self.proxytype = "socks5"
             proxieslist[i] = socks5pattern.sub("", proxieslist[i])
             proxieslist[i] = httpspattern.sub("", proxieslist[i])
         self.proxies = {'https' : proxieslist,}
-        if proxieslist.__len__() > 0:
-            if re.search(socks5pattern, proxieslist[0]):
-                self.proxies = {'socks5' : proxieslist,}
-                self.proxytype = "socks5"
+        if self.proxytype == "socks5":
+            self.proxies = {'socks5' : proxieslist,}
         self.amazonkey = amazonkey
         self.spotifyclientid = spotifyclientid
         self.spotifyclientsecret = spotifyclientsecret
@@ -1528,7 +1528,7 @@ class BuzzBot(object):
                     proxyport = proxyparts[1]
                 else:
                     proxyport = "80"
-                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socks.set_default_proxy(socks.SOCKS5, proxyip, int(proxyport))
                 socket.socket = socks.socksocket
                 #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
                 self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
@@ -1564,7 +1564,7 @@ class BuzzBot(object):
                     proxyport = proxyparts[1]
                 else:
                     proxyport = "80"
-                socks.set_default_proxy(socks.SOCKS5, proxyip, proxyport)
+                socks.set_default_proxy(socks.SOCKS5, proxyip, int(proxyport))
                 socket.socket = socks.socksocket
                 #self.proxyhandler = urllib.request.ProxyHandler({'socks5': self.proxies['socks5'][0]})
                 self.httpopener = urllib.request.build_opener(urllib.request.HTTPHandler(), self.httpshandler)
@@ -1875,7 +1875,7 @@ class BuzzBot(object):
                         self.logger.write("Spotify mp3 URL: %s\n"%epmp3url)
                     if fsf is not None:
                         self.__class__.writestatustofile(fsf, self.tlock, "Spotify mp3 URL: %s\n"%epmp3url)
-                    if itemtype == "track" and spotbot.ispodcast == False: # If we have a track, then we are already hitting the target through "getepisodemp3url"
+                    if epmp3url != "" and itemtype == "track" and spotbot.ispodcast == False: # If we have a track, then we are already hitting the target through "getepisodemp3url"
                         SPOTIFY_HIT_STAT += 1
                         if desktop:
                             curmessagecontent = self.msglabeltext.get()
@@ -1884,7 +1884,8 @@ class BuzzBot(object):
                             self.msglabeltext.set(curmessagecontent)
                         if fsf is not None:
                             self.__class__.writestatustofile(fsf, self.tlock, "SPOTIFY: %s"%SPOTIFY_HIT_STAT)
-                    spotmp3list.append(epmp3url)
+                    if epmp3url != "":
+                        spotmp3list.append(epmp3url)
                 for epurl in spotmp3list:
                     if self.quitflag == True:
                         print("Quit signal received. Terminating spotify child.")
