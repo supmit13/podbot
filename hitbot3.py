@@ -200,9 +200,6 @@ class AmazonBot(object):
             self.proxytype = ""
         try:
             self.context = createrequestcontext()
-            #if self.proxyip != "":
-            #    socks.set_default_proxy(socks.SOCKS5, self.proxyip, int(self.proxyport))
-            #    socket.socket = socks.socksocket
             self.httpshandler = urllib.request.HTTPSHandler(context=self.context)
             if self.proxytype == "https":
                 self.proxyhandler = urllib.request.ProxyHandler({'https': self.proxies['https'][0],})
