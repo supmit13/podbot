@@ -814,6 +814,7 @@ class SpotifyBot(object):
         ss = d.strftime("%S")
         self.httpheaders['cookie'] = "sss=1; sp_ab=%7B%222019_04_premium_menu%22%3A%22control%22%7D; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D;_sctr=1|1660156200000; OptanonAlertBoxClosed=2022-09-19T21:28:38.589Z; ki_r=; ki_t=1663622222898%3B1663943862664%3B1663967345225%3B4%3B31;OptanonConsent=isIABGlobal=false&datestamp=" + day + "+" + mon + "+" + str(dd) + "+" + str(year) + "+" + str(hh) + "%3A" + str(mm) + "%3A" + str(ss) + "+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; " + self.httpcookies
         #self.httpheaders['cookie'] = "sss=1; sp_adid=dab9886a-26b8-426c-b587-4deafa6317d6; sp_m=in-en; _gcl_au=1.1.769434751.1660164171; _cs_c=0; _scid=357dc4b2-eaa2-47c7-9f9a-9e2cbe9b7d5a; _fbp=fb.1.1660164171920.249213084; _sctr=1|1660156200000; OptanonAlertBoxClosed=2022-08-10T20:43:54.163Z; sp_phash=a2c17ae575b28126b4c5aa2b5fd872d2d196352e; sp_gaid=0088fcade00809beb262d750ca91434142a10eb4a69cbdff9c7404; spot=%7B%22t%22%3A1660164332%2C%22m%22%3A%22in-en%22%2C%22p%22%3Anull%7D; sp_t=a2f20bfc3a23619df074952c61af1c0f; sp_last_utm=%7B%22utm_campaign%22%3A%22your_account%22%2C%22utm_medium%22%3A%22menu%22%2C%22utm_source%22%3A%22spotify%22%7D; _cs_id=2e855292-0381-a776-8bb4-d86b89592613.1660164171.2.1660415644.1660415644.1.1694328171610; _ga_S35RN5WNT2=GS1.1.1660415644.2.1.1660415662.42; sss=1; sp_landing=https%3A%2F%2Fopen.spotify.com%2Fservice-worker.js.map%3Fsp_cid%3Da2f20bfc3a23619df074952c61af1c0f%26device%3Ddesktop; _gid=GA1.2.1290307347.1663020057; _ga_ZWG1NSHWD8=GS1.1.1663020057.27.0.1663020057.0.0.0; OptanonConsent=isIABGlobal=false&datestamp=Tue+Sep+13+2022+03%3A30%3A57+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=NotLandingPage&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1&AwaitingReconsent=false&geolocation=IN%3BDL; ki_t=1660164170739%3B1663020058642%3B1663020058642%3B13%3B42; ki_r=; _ga=GA1.2.190256731.1660163979"
+        self.logincookie = None
         if self.DEBUG:
             print("Cookie Sent: %s"%self.httpheaders['cookie'])
         
@@ -895,6 +896,115 @@ class SpotifyBot(object):
         return self.results
 
 
+    def _getcookiesdict(cls, responsecookies):
+        responsecookieslist = responsecookies.split(",")
+        cookiesdict = {}
+        pathPattern = re.compile(r"Path=/;", re.IGNORECASE)
+        domainPattern = re.compile(r"Domain=[^;,]+(;|,)", re.IGNORECASE)
+        expiresPattern = re.compile(r"Expires=[^;]+;?", re.IGNORECASE)
+        maxagePattern = re.compile(r"Max-Age=[^;]+;?", re.IGNORECASE)
+        samesitePattern = re.compile(r"SameSite=[^;]+;?", re.IGNORECASE)
+        securePattern = re.compile("secure;?", re.IGNORECASE)
+        versionPattern = re.compile("version=\d+;?", re.IGNORECASE)
+        httponlyPattern = re.compile("HttpOnly;", re.IGNORECASE)
+        wspattern = re.compile("\s+")
+        for cookie in responsecookieslist:
+            cookieparts = cookie.split("=")
+            cookiename = cookieparts[0]
+            cookiename = wspattern.sub("", cookiename)
+            cookieval = ""
+            if cookieparts.__len__() > 1:
+                cookieval = "=".join(cookieparts[1:])
+                cookieval = pathPattern.sub("", cookieval)
+                cookieval = domainPattern.sub("", cookieval)
+                cookieval = expiresPattern.sub("", cookieval)
+                cookieval = maxagePattern.sub("", cookieval)
+                cookieval = securePattern.sub("", cookieval)
+                cookieval = samesitePattern.sub("", cookieval)
+                cookieval = httponlyPattern.sub("", cookieval)
+                cookieval = versionPattern.sub("", cookieval)
+                cookieval = cookieval.replace(";", "")
+                cookieval = cookieval.strip()
+            cookiesdict[cookiename] = cookieval
+        return cookiesdict
+
+    _getcookiesdict = classmethod(_getcookiesdict)
+
+
+    def dologin(self, playlisturl, username, password):
+        loginpageurl = "https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F"
+        loginpageresponse = requests.get(loginpageurl)
+        loginpage = loginpageresponse.text
+        responseheaders = loginpageresponse.headers
+        responsecookies = responseheaders['set-cookie']
+        cookiesdict = self.__class__._getcookiesdict(responsecookies)
+        csrftoken = ""
+        if 'sp_sso_csrf_token' in cookiesdict.keys():
+            csrftoken = cookiesdict['sp_sso_csrf_token']
+        indexreactpattern = re.compile("\"([^\"]+indexReact.*\.js)\"", re.DOTALL)
+        ips = re.search(indexreactpattern, loginpage)
+        indexreacturl = ""
+        if not ips:
+            return None
+        indexreacturl = ips.groups()[0]
+        indexreactresponse = requests.get(indexreacturl)
+        indexreactcontent = indexreactresponse.text
+        recaptchapattern = re.compile("RECAPTCHA_KEY\s*\:\s*o\s*\?\s*\"[^\"]+\"\s*\:\s*\"([^\"]+)\"", re.DOTALL)
+        rps = re.search(recaptchapattern, indexreactcontent)
+        urlkey = ""
+        if rps:
+            urlkey = rps.groups()[0]
+        else:
+            return None
+        enterpriseurl = "https://www.google.com/recaptcha/enterprise.js?render=%s"%urlkey
+        enterpriseresponse = requests.get(enterpriseurl)
+        enterprisecontent = enterpriseresponse.text
+        releasespattern = re.compile("recaptcha\/releases\/([^\/]+)\/", re.DOTALL)
+        rps = re.search(releasespattern, enterprisecontent)
+        vval = ""
+        if rps:
+            vval = rps.groups()[0]
+        else:
+            return None
+        co = "aHR0cHM6Ly9hY2NvdW50cy5zcG90aWZ5LmNvbTo0NDM." # Decoding this with appropriate padding reveals the string b"https://accounts.spotify.com:443"
+        recaptchatokenurl = "https://www.google.com/recaptcha/enterprise/anchor?ar=1&k=%s&co=%s&hl=en&v=%s&size=invisible"%(urlkey, co, vval)
+        recaptcharesponse = requests.get(recaptchatokenurl)
+        recaptchacontent = recaptcharesponse.text
+        rsoup = BeautifulSoup(recaptchacontent, features="html.parser")
+        rtokentag = rsoup.find("input", {'id' : 'recaptcha-token'})
+        recaptcha_token = rtokentag['value']
+        loginurl = "https://accounts.spotify.com/login/password"
+        httpheaders = {'accept' : 'application/json', 'accept-encoding' : 'gzip,deflate', 'accept-language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'cache-control' : 'no-cache', 'content-type' : 'application/x-www-form-urlencoded', 'pragma' : 'no-cache', 'origin' : 'https://accounts.spotify.com', 'referer' : 'https://accounts.spotify.com/en/login?continue=https%3A%2F%2Fopen.spotify.com%2F', 'user-agent' : 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36', 'sec-fetch-site' : 'same-origin', 'sec-fetch-mode' : 'cors', 'sec-fetch-dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'x-csrf-token' : csrftoken}
+        cookiestr = ""
+        for k in cookiesdict.keys():
+            v = cookiesdict[k]
+            if k == "sp_tr":
+                cookiestr += k + "=true;"
+            else:
+                cookiestr += k + "=" + v + ";"
+        cookiestr += urlencode({"remember" : username}) + ";"
+        cookiestr += "sp_t=4f19955b53e05467d1d01975f7c92856; _gcl_au=1.1.1710244148.1670335166; _gid=GA1.2.1031141260.1670335167; OptanonConsent=isIABGlobal=false&datestamp=Tue+Dec+06+2022+19%3A30%3A52+GMT%2B0530+(India+Standard+Time)&version=6.26.0&hosts=&landingPath=https%3A%2F%2Fopen.spotify.com%2F&groups=s00%3A1%2Cf00%3A1%2Cm00%3A1%2Ct00%3A1%2Ci00%3A1%2Cf02%3A1%2Cm02%3A1%2Ct02%3A1; sp_landing=https%3A%2F%2Fopen.spotify.com%2F%3Fsp_cid%3D4f19955b53e05467d1d01975f7c92856%26device%3Ddesktop; _fbp=fb.1.1670335168433.791385657; sp_adid=1c77409b-46a7-40b1-9053-f24e5d51f16d; _ga_ZWG1NSHWD8=GS1.1.1670335167.1.1.1670335251.0.0.0; _ga=GA1.2.43833500.1670335167; _gat=1"
+        httpheaders['cookie'] = cookiestr
+        logindata = {'username' : username, 'password' : password, 'recaptchaToken' : recaptcha_token, 'remember' : 'true', 'continue' : 'https://open.spotify.com/'}
+        postdata = urlencode(logindata).encode('utf-8')
+        httpheaders['content-length'] = str(postdata.__len__())
+        print(postdata)
+        try:
+            self.httpresponse = requests.post(loginurl, data=postdata, headers=httpheaders)
+        except:
+            print("Failed trying to login: %s"%sys.exc_info()[1].__str__())
+            return None
+        loginresponseheaders = self.httpresponse.headers
+        logincookies = self.__class__._getcookiesdict(loginresponseheaders['set-cookie'])
+        print("============================================")
+        print(logincookies)
+        print(self.httpresponse.text)
+        print("============================================")
+        self.logincookie = logincookies
+        return logincookies
+
+
+
     def makehttprequest(self, requrl, headers=None):
         if requrl == '' or requrl is None:
             return None
@@ -951,6 +1061,8 @@ class SpotifyBot(object):
         requesturl = "https://spclient.wg.spotify.com/metadata/4/track/%s?market=from_token"%outstr
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : 'application/json', 'Accept-Language' : 'en', 'Referer' : 'https://open.spotify.com/', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken, 'app-platform' : 'WebPlayer'}
         httpheaders['spotify-app-version'] = "1.1.95.750.g9444fb59"
+        if self.logincookie is not None:
+            httpheaders['cookie'] = self.logincookie
         epinforequest = urllib.request.Request(requesturl, headers=httpheaders)
         if self.DEBUG:
             print("Requesting Track metadata from %s"%requesturl)
@@ -1015,6 +1127,8 @@ class SpotifyBot(object):
         # We do have the CDN URL now, but we still need to send a request to 'https://gae2-spclient.spotify.com/melody/v1/msg/batch'
         batchurl = "https://gae2-spclient.spotify.com/melody/v1/msg/batch"
         batchheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'gzip,deflate', 'Cache-control' : 'no-cache', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'same-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'content-type' : 'text/plain;charset=UTF-8', 'Origin' : 'https://open.spotify.com', 'Authorization' : "Bearer %s"%accesstoken, 'client-token' : clienttoken}
+        if self.logincookie is not None:
+            batchheaders['cookie'] = self.logincookie
         u = uuid.uuid1()
         t = (u.time - 0x01b21dd213814000)*100/1e9
         playbackid = str(u).replace("-", "")
@@ -1034,6 +1148,8 @@ class SpotifyBot(object):
             print("Error making batch request to %s: %s"%(batchurl, sys.exc_info()[1].__str__()))
         # We don't care about the response from the above request. It should send {'status' : 202} as response content, but we proceed with the next request even if it doesn't. The request above serves to increase the chances of a hit taking place.
         httpheaders = { 'User-Agent' : r'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',  'Accept' : '*/*', 'Accept-Language' : 'en-GB,en-US;q=0.9,en;q=0.8', 'Accept-Encoding' : 'identity', 'Cache-control' : 'no-cache', 'Connection' : 'keep-alive', 'Pragma' : 'no-cache', 'Referer' : 'https://open.spotify.com/', 'Sec-Fetch-Site' : 'cross-site', 'Sec-Fetch-Mode' : 'cors', 'Sec-Fetch-Dest' : 'empty', 'sec-ch-ua-platform' : 'Linux', 'sec-ch-ua-mobile' : '?0', 'sec-ch-ua' : '".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"', 'Origin' : 'https://open.spotify.com', 'Host' : 'audio-fa.scdn.co', 'range' : "bytes=0-"}
+        if self.logincookie is not None:
+            httpheaders['cookie'] = self.logincookie
         if self.DEBUG:
             print("Spotify CDN Url: %s"%cdnurl)
         trackcontentrequest = urllib.request.Request(cdnurl, headers=httpheaders)
@@ -1801,6 +1917,11 @@ class BuzzBot(object):
                 trid = tps.groups()[0]
                 episodeidlist.append(trid)
                 itemtype = "track"
+        if itemtype == "track": # So this is probably a music playlist. Must do login.
+            username = "supmit@gmail.com"
+            password = "xtmt365i"
+            logincookie = spotbot.dologin(siteurl, username, password)
+            spotbot.logincookie = logincookie
         episodeids = ",".join(episodeidlist)
         if self.logging:
             self.logger.write("Spotify episode Ids: %s\n"%episodeids)
@@ -1850,6 +1971,7 @@ class BuzzBot(object):
                     self.__class__.writestatustofile(fsf, self.tlock, "SPOTIFY: %s"%SPOTIFY_HIT_STAT)
             if epmp3url != "":
                 spotmp3list.append(epmp3url)
+        #print(spotmp3list)
         for epurl in spotmp3list:
             if self.quitflag == True:
                 print("Quit signal received. Terminating spotify child.")
@@ -1976,7 +2098,7 @@ class BuzzBot(object):
                     spotbot.playlistid = spps.groups()[0]
                 spotbot.DEBUG = self.DEBUG
                 spotbot.humanize = self.humanize
-                spotbot.logging = self.logging    
+                spotbot.logging = self.logging
                 sptt = Thread(target=self.spotify_handler, args=(spotbot, siteurl, fsf, desktop, ctr))
                 sptt.daemon = True
                 sptt.start()
@@ -2520,7 +2642,7 @@ class GUI(object):
                 if not re.search(self.proxypatternhttp, line) and not re.search(self.proxypatternsocks5, line):
                     continue
                 self.proxieslist.append(line)
-        print(self.proxieslist)
+        #print(self.proxieslist)
         amazontargethitscount = self.targetamazonhits.get()
         spotifytargethitscount = self.targetspotifyhits.get()
         appletargethitscount = self.targetapplehits.get()
